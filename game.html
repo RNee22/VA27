@@ -1,0 +1,1169 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>神話之門 — 希臘神祇選門射擊</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #05050c; overflow: hidden; }
+  body { display: flex; align-items: center; justify-content: center; }
+  [hidden] { display: none !important; }
+  #wrap { position: relative; }
+  canvas { display: block; background: #0b0d1a; box-shadow: 0 0 40px rgba(120,140,255,.25); cursor: crosshair; touch-action: none; }
+  #ui { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #fff;
+        font-family: "Noto Sans TC","Microsoft JhengHei","PingFang TC",sans-serif; }
+  .panel { width: 92%; max-height: 94%; overflow-y: auto; box-sizing: border-box; padding: 1em 1.1em;
+           background: rgba(12,14,34,.97); border: 2px solid #c9a02c; border-radius: 14px; box-shadow: 0 0 30px rgba(201,160,44,.3); }
+  .panel h1 { margin: 0; text-align: center; font-size: 2em; }
+  #uiSub { text-align: center; color: #cfd6ff; margin: .3em 0 .8em; font-size: .95em; }
+  .tabs { display: flex; gap: .4em; margin-bottom: .7em; }
+  .tabs button { flex: 1; padding: .5em 0; font: inherit; color: #cfd6ff; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.2); border-radius: 8px; cursor: pointer; }
+  .tabs button.on { color: #1a1300; background: #ffd86b; border-color: #ffd86b; font-weight: bold; }
+  .tab p { margin: .35em 0; }
+  .tab h3 { margin: .9em 0 .3em; color: #ff8a8a; font-size: 1em; }
+  .good { color: #7dff9a; } .bad { color: #ffb0b0; } .hint { color: #9fb0ff; font-size: .9em; }
+  #submitRow { display: flex; gap: .5em; margin-bottom: .6em; }
+  #nick { flex: 1; min-width: 0; padding: .5em .6em; font: inherit; color: #fff; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.3); border-radius: 8px; }
+  button.gold { padding: .5em 1em; font: inherit; font-weight: bold; color: #1a1300; background: #ffd86b; border: 0; border-radius: 8px; cursor: pointer; }
+  button.gold:disabled { opacity: .5; cursor: default; }
+  #lbStatus, #lbRank { font-size: .9em; margin: .2em 0; color: #9fb0ff; }
+  #lbRank { color: #ffd86b; font-weight: bold; }
+  #lbList { list-style: none; margin: .4em 0 0; padding: 0; }
+  #lbList li { display: flex; gap: .6em; padding: .35em .5em; border-radius: 6px; align-items: baseline; }
+  #lbList li:nth-child(odd) { background: rgba(255,255,255,.05); }
+  #lbList li.me { background: rgba(255,216,107,.22); outline: 1px solid #ffd86b; }
+  #lbList .rk { width: 1.6em; color: #ffd86b; font-weight: bold; }
+  #lbList .nm { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #lbList .sc { font-weight: bold; } #lbList .wv { color: #9fb0ff; width: 2.6em; text-align: right; }
+  details.dex { border: 1px solid rgba(255,255,255,.18); border-radius: 10px; margin: .5em 0; padding: .1em .7em; background: rgba(255,255,255,.04); }
+  details.dex summary { cursor: pointer; padding: .55em 0; display: flex; align-items: center; gap: .5em; font-weight: bold; list-style: none; }
+  details.dex summary::-webkit-details-marker { display: none; }
+  details.dex summary .ico { font-size: 1.5em; } details.dex summary .mn { flex: 1; }
+  .badge { font-size: .8em; padding: .15em .6em; border-radius: 99px; }
+  .badge.win { background: #17603a; color: #b9ffd2; } .badge.lose { background: #6b1c27; color: #ffc4cc; }
+  .story { line-height: 1.7; } .note { color: #9fb0ff; font-size: .88em; line-height: 1.5; } .key { color: #ffd86b; }
+  #again { display: block; margin: .9em auto .2em; font-size: 1.05em; padding: .6em 2em; }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="c"></canvas>
+  <div id="ui" hidden>
+    <div class="panel">
+      <h1 id="uiTitle"></h1>
+      <div id="uiSub"></div>
+      <div class="tabs">
+        <button data-tab="lb" class="on">排行榜</button>
+        <button data-tab="stats">學習統計</button>
+        <button data-tab="dex">怪物圖鑑</button>
+      </div>
+      <div id="tab-lb" class="tab">
+        <div id="submitRow">
+          <input id="nick" maxlength="12" placeholder="輸入暱稱（最多 12 字）" autocomplete="off">
+          <button id="submitBtn" class="gold">送出分數</button>
+        </div>
+        <div id="lbRank"></div>
+        <div id="lbStatus"></div>
+        <ol id="lbList"></ol>
+      </div>
+      <div id="tab-stats" class="tab" hidden></div>
+      <div id="tab-dex" class="tab" hidden></div>
+      <button id="again" class="gold">再玩一次</button>
+    </div>
+  </div>
+</div>
+<script>
+/* =====================================================================
+   神話之門 — 單檔 HTML + Canvas + 原生 JavaScript
+   操作：← → / A D 移動；滑鼠移動或手指拖曳也可；P 暫停；M 靜音
+   ===================================================================== */
+
+// ====================== 1. 資料表（來自你的 registry） ======================
+const DEITIES = {
+  poseidon: {
+    id: 'poseidon', name: '波賽頓', domain: '海洋深淵', symbol: '🔱', weaponName: '海潮三叉戟',
+    bulletModifier: { damageMultiplier: 3.0, speedMultiplier: 1.2, specialEffect: 'pierce', projectileVisualKey: 'bullet_water_trident' }
+  },
+  hades: {
+    id: 'hades', name: '黑帝斯', domain: '冥界死域', symbol: '⚚', weaponName: '冥河敕令鏈',
+    bulletModifier: { damageMultiplier: 3.0, speedMultiplier: 1.0, specialEffect: 'chain', projectileVisualKey: 'bullet_shadow_chain' }
+  },
+  athena: {
+    id: 'athena', name: '雅典娜', domain: '謀略與試煉', symbol: '🦉', weaponName: '真理之矛與神盾',
+    bulletModifier: { damageMultiplier: 2.5, speedMultiplier: 1.1, specialEffect: 'shield', projectileVisualKey: 'bullet_aegis_spear' }
+  },
+  artemis: {
+    id: 'artemis', name: '阿爾忒彌斯', domain: '野外森林與荒野', symbol: '🏹', weaponName: '逐影連環箭',
+    bulletModifier: { damageMultiplier: 2.5, speedMultiplier: 1.8, specialEffect: 'homing', projectileVisualKey: 'bullet_moon_arrow' }
+  },
+  apollo: {
+    id: 'apollo', name: '阿波羅', domain: '音律、預言與淨化', symbol: '🎵', weaponName: '赫利俄斯日光矢',
+    bulletModifier: { damageMultiplier: 2.8, speedMultiplier: 1.3, specialEffect: 'aoe', projectileVisualKey: 'bullet_sun_wave' }
+  },
+  hephaestus: {
+    id: 'hephaestus', name: '赫菲斯托斯', domain: '鍛造工藝與神火', symbol: '🔨', weaponName: '神火破甲熔岩彈',
+    bulletModifier: { damageMultiplier: 3.2, speedMultiplier: 0.9, specialEffect: 'melt', projectileVisualKey: 'bullet_lava_bomb' }
+  }
+};
+
+const MONSTER_ROSTER = [
+  { id: 'scylla', name: '海怪斯庫拉', domainCategory: '海洋深淵', rulingDeityId: 'poseidon', confusionDeityIds: ['artemis', 'apollo'], baseHp: 1200 },
+  { id: 'cerberus', name: '地獄三頭犬塞爾伯洛斯', domainCategory: '冥界死域', rulingDeityId: 'hades', confusionDeityIds: ['artemis', 'hephaestus'], baseHp: 1500 },
+  { id: 'sphinx', name: '斯芬克斯之謎', domainCategory: '謀略與試煉', rulingDeityId: 'athena', confusionDeityIds: ['apollo', 'hephaestus'], baseHp: 900 },
+  { id: 'calydonian_boar', name: '卡呂冬野豬', domainCategory: '野外森林與荒野', rulingDeityId: 'artemis', confusionDeityIds: ['poseidon', 'athena'], baseHp: 1100 },
+  { id: 'siren', name: '海妖賽蓮', domainCategory: '音律與精神迷思', rulingDeityId: 'apollo', confusionDeityIds: ['poseidon', 'artemis'], baseHp: 800 },
+  { id: 'talos', name: '青銅巨人塔羅斯', domainCategory: '鍛造工藝與神火', rulingDeityId: 'hephaestus', confusionDeityIds: ['athena', 'hades'], baseHp: 2000 }
+];
+
+// 動態錯誤台詞映射表：[被選錯的神祇][正解神祇] -> 專屬台詞
+const REBUKE_DIALOGUES = {
+  artemis: {
+    poseidon: '阿爾忒彌斯：「吾之箭矢難穿深海巨浪，此怪當由波賽頓平息！」',
+    hades: '阿爾忒彌斯：「山林之弦射不中無實體的亡靈，唯有冥王黑帝斯能收服它！」'
+  },
+  poseidon: {
+    artemis: '波賽頓：「狂濤觸及不了崇山密林中的獵物，速求狩獵女神阿爾忒彌斯！」',
+    apollo: '波賽頓：「深海巨力無法驅散精神惑音，唯有阿波羅之律能淨化人心！」'
+  },
+  hades: {
+    apollo: '黑帝斯：「幽冥死氣破不開惑人的魅惑歌聲，去尋阿波羅的光明神音！」',
+    athena: '黑帝斯：「地底暗影解不開智慧之謎，汝當求助雅典娜之謀略！」'
+  },
+  apollo: {
+    hephaestus: '阿波羅：「神聖樂音震不碎純青銅之甲，必須以赫菲斯托斯的神火融之！」',
+    poseidon: '阿波羅：「日光照不透萬仞深淵，此巨怪須由波賽頓掀起海嘯制裁！」'
+  },
+  athena: {
+    hephaestus: '雅典娜：「計策面對純粹的神工頑鐵稍顯無力，去找工匠之神赫菲斯托斯！」',
+    artemis: '雅典娜：「繁複戰術難敵群獸奔突，速借阿爾忒彌斯的連環箭術！」'
+  },
+  hephaestus: {
+    athena: '赫菲斯托斯：「蠻力巨錘破不了心智迷宮，唯有雅典娜的智慧可破除此局！」',
+    hades: '赫菲斯托斯：「神爐烈火難傷冥界死靈，將其交給黑帝斯遣返歸鄉！」'
+  }
+};
+
+// ====================== 2. 遊戲引擎（你的判定規則，原樣移植） ======================
+class MythGameEngine {
+  /** 為當前波次生成 2 或 3 個神祇門扉：必含 1 個正解，其餘優先取混淆名單，不足則隨機補齊 */
+  static generateGates(currentMonster, gateCount = 3) {
+    const correctDeityId = currentMonster.rulingDeityId;
+    const selectedDeityIds = [correctDeityId];
+
+    for (const distractorId of currentMonster.confusionDeityIds) {
+      if (selectedDeityIds.length >= gateCount) break;
+      if (!selectedDeityIds.includes(distractorId)) selectedDeityIds.push(distractorId);
+    }
+
+    const allDeityIds = Object.keys(DEITIES);
+    while (selectedDeityIds.length < gateCount) {
+      const randomDeity = allDeityIds[Math.floor(Math.random() * allDeityIds.length)];
+      if (!selectedDeityIds.includes(randomDeity)) selectedDeityIds.push(randomDeity);
+    }
+
+    // Fisher-Yates 洗牌：正解門隨機分佈於左中右
+    for (let i = selectedDeityIds.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [selectedDeityIds[i], selectedDeityIds[j]] = [selectedDeityIds[j], selectedDeityIds[i]];
+    }
+
+    return selectedDeityIds.map((id, index) => ({
+      gateIndex: index,
+      deity: DEITIES[id],
+      isCorrect: id === correctDeityId
+    }));
+  }
+
+  /** 判定核心：玩家撞門/選門後的結算處理 */
+  static resolveSelection(chosenDeityId, monster) {
+    const isSuccess = chosenDeityId === monster.rulingDeityId;
+    const chosenDeity = DEITIES[chosenDeityId];
+    const correctDeity = DEITIES[monster.rulingDeityId];
+
+    if (isSuccess) {
+      return {
+        success: true, chosenDeity, correctDeity,
+        appliedBuff: {
+          damageMultiplier: chosenDeity.bulletModifier.damageMultiplier,
+          bulletEffect: chosenDeity.bulletModifier.specialEffect
+        },
+        feedbackMessage: `【神力共鳴】獲取 ${chosenDeity.name} 的「${chosenDeity.weaponName}」，對此領域怪物造成屬性壓制！`,
+        analyticsPayload: { monsterId: monster.id, chosenDeityId, correctDeityId: monster.rulingDeityId, isMisconception: false }
+      };
+    }
+
+    const isMisconception = monster.confusionDeityIds.includes(chosenDeityId);
+    const customLine = REBUKE_DIALOGUES[chosenDeityId]?.[monster.rulingDeityId];
+    const feedbackMessage = customLine ||
+      `❌ ${chosenDeity.name} 的領域為「${chosenDeity.domain}」。面對「${monster.name}」，應尋求掌管「${correctDeity.domain}」的 ${correctDeity.name}！`;
+
+    return {
+      success: false, chosenDeity, correctDeity,
+      appliedBuff: { damageMultiplier: 0.5, bulletEffect: 'none' }, // 懲罰：火力削弱 50%
+      feedbackMessage,
+      analyticsPayload: { monsterId: monster.id, chosenDeityId, correctDeityId: monster.rulingDeityId, isMisconception }
+    };
+  }
+}
+
+// ====================== 3. 視覺與常數 ======================
+const W = 480, H = 760;
+// 線上排行榜：貼上 Google Apps Script 網頁應用程式的 /exec 網址。留空 = 只用本機排行榜。
+const LEADERBOARD_URL = 'https://script.google.com/macros/s/AKfycbwHOWlX1hiGSb3GjWjhFDCMruoh_iHv0c5_kE2ROGcKgtLrFkUNs_kaKCT2CbsG1mbW/exec';
+const PLAYER_Y = 690;
+const GATE_SPAWN_Y = 335, GATE_SPEED = 85, GATE_H = 104;
+const MONSTER_Y = 195;
+const BASE_DMG = 10, FIRE_INTERVAL = 0.16, BASE_BULLET_SPEED = 640;
+
+const BULLET_STYLE = {
+  bullet_default:       { color: '#c9ccd6', glow: '#7c8090', shape: 'capsule' },
+  bullet_water_trident: { color: '#44b0ff', glow: '#1c6fe0', shape: 'trident' },
+  bullet_shadow_chain:  { color: '#b07aff', glow: '#6a2fd0', shape: 'chain' },
+  bullet_aegis_spear:   { color: '#f1d27a', glow: '#c9a02c', shape: 'spear' },
+  bullet_moon_arrow:    { color: '#c8ecff', glow: '#7ec8f0', shape: 'arrow' },
+  bullet_sun_wave:      { color: '#ffd93b', glow: '#ff9d00', shape: 'sun' },
+  bullet_lava_bomb:     { color: '#ff6a2a', glow: '#d62600', shape: 'lava' }
+};
+const EFFECT_NAME = { pierce: '貫穿', chain: '連鎖', shield: '神盾', homing: '追蹤', aoe: '範圍爆發', melt: '熔甲', none: '無' };
+const deityColor = d => BULLET_STYLE[d.bulletModifier.projectileVisualKey].color;
+
+const MONSTER_LOOK = {
+  scylla: { emoji: '🐙', size: 92 },
+  cerberus: { emoji: '🐕🐕🐕', size: 44 },
+  sphinx: { emoji: '🦁', size: 92 },
+  calydonian_boar: { emoji: '🐗', size: 92 },
+  siren: { emoji: '🧜‍♀️', size: 92 },
+  talos: { emoji: '🗿', size: 92 }
+};
+
+// 怪物圖鑑典故（結算後點開怪物才展開）。note 為版本分歧或「遊戲設定」的說明。
+const MONSTER_LORE = {
+  scylla: {
+    icon: '🐙',
+    story: '斯庫拉原是容貌絕美的海中仙女，因遭人嫉妒施法，變成六頭十二足的怪物，盤踞在墨西拿海峽的岩洞中，與對岸的漩渦卡律布狄斯夾擊往來船隻。奧德修斯的船隊經過時，她一口擄走了六名水手。海洋深淵的威脅，在遊戲中交由海神波賽頓平息。',
+    note: '遊戲設定：古典文獻並無「由波賽頓收服斯庫拉」的明確記載，這個配對是為了教學而設計。變形的緣由也有多種版本。'
+  },
+  cerberus: {
+    icon: '🐕',
+    story: '塞爾伯洛斯是佇立於冥界入口的禁忌三頭犬。牠象徵著死亡的鐵律，尾部為毒蛇，鬃毛間盤繞著嘶嘶作響的群蛇；對步入冥府的亡魂搖尾相迎，卻絕不容許任何生靈逃離。詩人奧菲斯曾以至情至聖的七弦琴聲讓牠安然入睡。但唯有冥王黑帝斯的至高敕令，才能真正遣返並號令這頭永恆的守門巨獸。',
+    note: '版本註記：各家對牠的頭數與赫拉克勒斯如何制伏牠的細節略有出入，這裡採用最常見的說法。'
+  },
+  sphinx: {
+    icon: '🦁',
+    story: '斯芬克斯守在底比斯城外，向過路者提出謎題：「什麼生物早晨四隻腳、中午兩隻腳、晚上三隻腳？」答不出來的人會被吞食。伊底帕斯答出了「人」——嬰兒爬行、成年直立、老年拄杖——斯芬克斯便羞憤墜崖。這隻怪考驗的是心智而不是力量，所以在遊戲中對應智慧與謀略女神雅典娜。',
+    note: '遊戲設定：神話中斯芬克斯的來歷說法不一（有一說是女神赫拉所派），與雅典娜的對應是遊戲設計。'
+  },
+  calydonian_boar: {
+    icon: '🐗',
+    story: '因卡呂冬國王奧紐斯在豐收祭典上遺漏了對狩獵女神的敬奉，憤怒的阿爾忒彌斯放逐了一頭體型如山的狂暴野豬踐踏人間田園。這頭巨獸皮如鐵甲、獠牙如刃，引來全希臘最頂尖的英雄獵隊展開慘烈圍捕。最終，女獵手阿塔蘭忒的破空之箭首開血路，墨勒阿革洛斯再給予致命一擊。面對這場荒野的復仇之怒，唯有追隨狩獵女神的精準之箭方能將其終結。',
+    note: '版本註記：獵殺之後關於獵物歸屬的爭執，以及墨勒阿革洛斯的下場，各版本情節不同，這裡只取前半段。'
+  },
+  siren: {
+    icon: '🧜‍♀️',
+    story: '賽蓮是棲息在地中海孤島與暗礁之上的致命妖鳥。牠們擁有天籟般的魅惑歌聲，能勾起水手心中最深切的渴望，使其失神任由船隻撞擊礁石沉沒。奧德修斯曾以蜂蠟封住船員雙耳、將自己緊綁於桅杆之上才得以窺聽；阿爾戈英雄則賴音樂家奧菲斯彈奏神琴壓制妖音。在遊戲中，唯有樂神阿波羅的光明之音，能徹底破除這股惑控心靈的迷霧。',
+    note: '補充：傳說中奧菲斯有時被視為阿波羅之子，七弦琴也是阿波羅的象徵樂器。賽蓮的形象在不同時代也有差異（鳥身或魚尾）。'
+  },
+  talos: {
+    icon: '🗿',
+    story: '塔羅斯是巡值於克里特島的青銅巨神，每日繞島三週，向靠近的敵船投擲崩山巨石，或將自身燒得通紅將入侵者擁入懷中烙死。他無懈可擊的鋼鐵軀體內，僅有一條從頸部延伸至腳踝的微小血管，並以一枚青銅釘死死封存著神之靈液（Ichor）。當阿爾戈英雄到來，魔女美狄亞施展咒術使神釘脫落，靈液流盡的巨人隨之崩塌。神火與鍛造是理解他的鑰匙，在遊戲中對應工匠之神赫菲斯托斯。',
+    note: '版本註記：塔羅斯的製造者與死因有多種說法（赫菲斯托斯、宙斯贈予歐羅巴等），遊戲採用「赫菲斯托斯」一說。'
+  }
+};
+
+const FONT = '"Noto Sans TC","Microsoft JhengHei","PingFang TC",sans-serif';
+
+// ====================== 4. 基礎設定 ======================
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+const DPR = Math.min(2, window.devicePixelRatio || 1);
+canvas.width = W * DPR; canvas.height = H * DPR;
+function resize() {
+  const s = Math.min(innerWidth / W, innerHeight / H);
+  canvas.style.width = (W * s) + 'px';
+  canvas.style.height = (H * s) + 'px';
+  const wrap = document.getElementById('wrap');
+  wrap.style.width = (W * s) + 'px';
+  wrap.style.height = (H * s) + 'px';
+  document.getElementById('ui').style.fontSize = (14 * s) + 'px';
+}
+addEventListener('resize', resize); resize();
+
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const rand = (a, b) => a + Math.random() * (b - a);
+function rr(x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+function txt(s, x, y, size, color, align = 'center', bold = false, base = 'middle') {
+  ctx.font = `${bold ? 'bold ' : ''}${size}px ${FONT}`;
+  ctx.fillStyle = color; ctx.textAlign = align; ctx.textBaseline = base;
+  ctx.fillText(s, x, y);
+}
+function wrapLines(text, maxW, font) {
+  ctx.font = font;
+  const lines = []; let cur = '';
+  for (const ch of text) {
+    if (ctx.measureText(cur + ch).width > maxW) { lines.push(cur); cur = ch; } else cur += ch;
+  }
+  if (cur) lines.push(cur);
+  return lines;
+}
+
+// ====================== 5. 音效（WebAudio，無外部檔案） ======================
+let actx = null, muted = false;
+function initAudio() {
+  if (!actx) { try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} }
+  if (actx && actx.state === 'suspended') actx.resume();
+}
+function beep(freq, dur, type = 'sine', vol = 0.07, endFreq = null, delay = 0) {
+  if (!actx || muted) return;
+  const t0 = actx.currentTime + delay;
+  const o = actx.createOscillator(), g = actx.createGain();
+  o.type = type; o.frequency.setValueAtTime(freq, t0);
+  if (endFreq) o.frequency.exponentialRampToValueAtTime(endFreq, t0 + dur);
+  g.gain.setValueAtTime(vol, t0);
+  g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+  o.connect(g); g.connect(actx.destination);
+  o.start(t0); o.stop(t0 + dur + 0.02);
+}
+const sfx = {
+  blessing() { [523, 659, 784, 1047].forEach((f, i) => beep(f, 0.25, 'triangle', 0.08, null, i * 0.07)); },
+  error() { beep(130, 0.35, 'sawtooth', 0.09, 70); },
+  hit() { beep(300, 0.05, 'square', 0.025, 180); },
+  hurt() { beep(220, 0.3, 'sawtooth', 0.1, 60); },
+  shield() { beep(700, 0.2, 'sine', 0.08, 300); },
+  kill() { [392, 523, 659, 784, 1047].forEach((f, i) => beep(f, 0.3, 'triangle', 0.08, null, i * 0.09)); },
+  start() { beep(440, 0.15, 'triangle', 0.07); beep(660, 0.25, 'triangle', 0.07, null, 0.12); }
+};
+
+// ====================== 6. 遊戲狀態 ======================
+let phase = 'title';       // title | intro | fight | kill | over | win
+let phaseT = 0, overT = 0, time = 0, paused = false;
+let order = [], waveIdx = 0, monster = null;
+let player = { x: W / 2, inv: 0, shield: 0, shieldCd: 0 };
+let bullets = [], orbs = [], particles = [], floaters = [], bolts = [], rings = [];
+let gateRow = null, gateTimer = 0;
+let buff, score, lives, shake = 0, msg = null, fireT = 0;
+let stats;
+let targetX = null;
+const keys = { left: false, right: false };
+
+const stars = Array.from({ length: 70 }, () => ({ x: rand(0, W), y: rand(0, H), s: rand(0.6, 2), v: rand(8, 28), p: rand(0, 6.28) }));
+
+function defaultBuff() {
+  return { mult: 1, effect: 'none', key: 'bullet_default', name: '凡鐵箭', speedMult: 1, color: BULLET_STYLE.bullet_default.color };
+}
+function newGame() {
+  order = [...MONSTER_ROSTER].sort(() => Math.random() - 0.5);
+  score = 0; lives = 3; shake = 0; msg = null;
+  player = { x: W / 2, inv: 0, shield: 0, shieldCd: 0 };
+  bullets = []; orbs = []; particles = []; floaters = []; bolts = []; rings = [];
+  stats = { right: 0, wrong: 0, mis: 0, mastered: {}, review: {}, pairs: {}, encounters: [], runTime: 0, startWall: Date.now(), submitted: false, bonus: 0 };
+  hideEndPanel();
+  startWave(0);
+}
+function startWave(i) {
+  waveIdx = i;
+  const def = order[i];
+  monster = { def, hp: def.baseHp, maxHp: def.baseHp, x: W / 2, y: MONSTER_Y, flash: 0, melt: 0, shootT: 1.5, shots: 0, t: 0, rewarded: false };
+  stats.encounters.push({ monsterId: def.id, outcome: 'fighting', right: 0, wrong: 0, chosen: [] });
+  buff = defaultBuff();
+  player.shield = 0; player.shieldCd = 0;
+  gateRow = null; gateTimer = 1.0;
+  bullets = []; orbs = [];
+  phase = 'intro'; phaseT = 2.2;
+  showMsg(`第 ${i + 1} 波：${def.name} 現身！威脅領域「${def.domainCategory}」——選擇正確的神祇之門！`, '#ffd86b', 4.2);
+}
+function showMsg(text, color, dur = 4.5) { msg = { text, color, t: 0, dur }; }
+
+// ====================== 7. 選門碰撞回調（對應你的 handlePlayerGateCollision） ======================
+function onGateCollision(gateEntity) {
+  const result = MythGameEngine.resolveSelection(gateEntity.deity.id, monster.def);
+  const cd = result.chosenDeity;
+
+  if (result.success) {
+    sfx.blessing();
+    const bm = cd.bulletModifier;
+    buff = {
+      mult: result.appliedBuff.damageMultiplier,
+      effect: result.appliedBuff.bulletEffect,
+      key: bm.projectileVisualKey, name: cd.weaponName,
+      speedMult: bm.speedMultiplier, color: BULLET_STYLE[bm.projectileVisualKey].color
+    };
+    if (buff.effect === 'shield') { player.shield = 1; player.shieldCd = 0; }
+    // 每隻怪只有「第一次選對」才給分，避免重複刷神門
+    if (!monster.rewarded) { monster.rewarded = true; score += 300; floatText(player.x, PLAYER_Y - 40, '+300', '#7dff9a'); }
+    showMsg(result.feedbackMessage, '#00ff66', 4.5);
+    burst(player.x, PLAYER_Y, buff.color, 40, 260);
+    rings.push({ x: player.x, y: PLAYER_Y, r: 10, max: 120, life: 0.6, t: 0, color: buff.color });
+  } else {
+    sfx.error();
+    shake = 0.35;
+    buff = {
+      mult: result.appliedBuff.damageMultiplier, effect: 'none', key: 'bullet_default',
+      name: '凡鐵箭（火力削弱）', speedMult: 1, color: BULLET_STYLE.bullet_default.color
+    };
+    player.shield = 0;
+    showMsg(result.feedbackMessage, '#ff4444', 5.5);
+    burst(player.x, PLAYER_Y, '#ff4444', 24, 200);
+  }
+  track(result.analyticsPayload);
+  return result.success;
+}
+
+// 學習數據
+function track(p) {
+  const enc = stats.encounters[stats.encounters.length - 1];
+  if (enc) {
+    if (p.chosenDeityId === p.correctDeityId) enc.right++;
+    else { enc.wrong++; enc.chosen.push(p.chosenDeityId); }
+  }
+  if (p.chosenDeityId === p.correctDeityId) {
+    stats.right++;
+    stats.mastered[p.correctDeityId] = (stats.mastered[p.correctDeityId] || 0) + 1;
+  } else {
+    stats.wrong++;
+    if (p.isMisconception) stats.mis++;
+    stats.review[p.correctDeityId] = (stats.review[p.correctDeityId] || 0) + 1;
+    const k = p.monsterId + '|' + p.chosenDeityId;
+    stats.pairs[k] = (stats.pairs[k] || 0) + 1;
+  }
+}
+
+// ====================== 8. 特效工具 ======================
+function burst(x, y, color, n, speed) {
+  for (let i = 0; i < n; i++) {
+    const a = rand(0, Math.PI * 2), v = rand(speed * 0.2, speed);
+    particles.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: rand(0.4, 0.9), max: 0.9, color, size: rand(2, 4.5) });
+  }
+}
+function floatText(x, y, text, color) { floaters.push({ x, y, text, color, life: 0.6 }); }
+function makeBolt(x1, y1, x2, y2, color) {
+  const pts = [[x1, y1]]; const n = 6;
+  for (let i = 1; i < n; i++) pts.push([x1 + (x2 - x1) * i / n + rand(-14, 14), y1 + (y2 - y1) * i / n + rand(-14, 14)]);
+  pts.push([x2, y2]);
+  bolts.push({ pts, life: 0.25, color });
+}
+
+// ====================== 9. 傷害與玩家受傷 ======================
+function dealDamage(raw, hx, hy) {
+  let d = raw;
+  if (monster.melt > 0) d *= 1.3;
+  monster.hp -= d; monster.flash = 0.08;
+  score += Math.round(d / 5);
+  floatText(hx + rand(-10, 10), hy - 12, Math.round(d), monster.melt > 0 ? '#ff9a4a' : '#ffffff');
+}
+function hurtPlayer() {
+  if (player.inv > 0) return;
+  if (player.shield > 0) {
+    player.shield = 0; player.shieldCd = 6; player.inv = 0.6; sfx.shield();
+    burst(player.x, PLAYER_Y, '#f1d27a', 18, 180);
+    return;
+  }
+  lives--; player.inv = 1.6; shake = 0.3; sfx.hurt();
+  burst(player.x, PLAYER_Y, '#ff6a6a', 26, 240);
+  if (lives <= 0) endRun(false);
+}
+
+// ====================== 10. 更新 ======================
+function update(dt) {
+  time += dt;
+  stars.forEach(s => { s.y += s.v * dt; if (s.y > H) { s.y = -2; s.x = rand(0, W); } });
+  particles.forEach(p => { p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= 0.96; p.vy *= 0.96; p.life -= dt; });
+  particles = particles.filter(p => p.life > 0);
+  floaters.forEach(f => { f.y -= 40 * dt; f.life -= dt; });
+  floaters = floaters.filter(f => f.life > 0);
+  bolts.forEach(b => b.life -= dt); bolts = bolts.filter(b => b.life > 0);
+  rings.forEach(r => { r.t += dt; r.r = r.max * Math.min(1, r.t / r.life); }); rings = rings.filter(r => r.t < r.life);
+  if (shake > 0) shake -= dt;
+  if (msg) { msg.t += dt; if (msg.t > msg.dur) msg = null; }
+
+  if (phase === 'title') return;
+  if (phase === 'over' || phase === 'win') { overT += dt; return; }
+
+  // 玩家移動
+  let dir = 0;
+  if (keys.left) dir -= 1;
+  if (keys.right) dir += 1;
+  if (dir) { player.x += dir * 430 * dt; targetX = null; }
+  else if (targetX != null) {
+    const d = targetX - player.x, st = 640 * dt;
+    player.x += Math.abs(d) < st ? d : Math.sign(d) * st;
+  }
+  player.x = clamp(player.x, 24, W - 24);
+  if (player.inv > 0) player.inv -= dt;
+  if (buff.effect === 'shield' && player.shield === 0 && player.shieldCd > 0) {
+    player.shieldCd -= dt;
+    if (player.shieldCd <= 0) player.shield = 1;
+  }
+
+  monster.t += dt;
+  monster.x = W / 2 + Math.sin(monster.t * 0.8) * 110;
+  monster.y = MONSTER_Y + Math.sin(monster.t * 1.7) * 6;
+  if (monster.flash > 0) monster.flash -= dt;
+  if (monster.melt > 0) monster.melt -= dt;
+
+  if (phase === 'intro') {
+    phaseT -= dt;
+    if (phaseT <= 0) phase = 'fight';
+    return;
+  }
+  if (phase === 'kill') {
+    phaseT -= dt;
+    if (phaseT <= 0) {
+      if (waveIdx + 1 >= order.length) endRun(true);
+      else startWave(waveIdx + 1);
+    }
+    updateBullets(dt);
+    return;
+  }
+
+  // ---- fight ----
+  stats.runTime += dt;
+  // 自動射擊
+  fireT -= dt;
+  if (fireT <= 0) {
+    fireT = FIRE_INTERVAL;
+    bullets.push({
+      x: player.x, y: PLAYER_Y - 22, vx: 0, vy: -BASE_BULLET_SPEED * buff.speedMult,
+      dmg: BASE_DMG * buff.mult, key: buff.key, effect: buff.effect, hit: false
+    });
+    if (buff.mult >= 2) beep(520 + buff.mult * 60, 0.04, 'triangle', 0.015);
+  }
+  updateBullets(dt);
+
+  // 怪物攻擊
+  monster.shootT -= dt;
+  if (monster.shootT <= 0) {
+    monster.shootT = Math.max(0.75, 1.55 - waveIdx * 0.1);
+    monster.shots++;
+    const spd = 195 + waveIdx * 12;
+    const aim = Math.atan2(PLAYER_Y - monster.y, player.x - monster.x);
+    const fan = monster.shots % 3 === 0 ? [-0.3, 0, 0.3] : [0];
+    fan.forEach(o => orbs.push({ x: monster.x, y: monster.y + 30, vx: Math.cos(aim + o) * spd, vy: Math.sin(aim + o) * spd, r: 9 }));
+  }
+  orbs.forEach(o => {
+    o.x += o.vx * dt; o.y += o.vy * dt;
+    if (Math.hypot(o.x - player.x, o.y - PLAYER_Y) < o.r + 13) { o.dead = true; hurtPlayer(); }
+    if (o.y > H + 20 || o.x < -20 || o.x > W + 20) o.dead = true;
+  });
+  orbs = orbs.filter(o => !o.dead);
+  if (phase === 'over') return;
+
+  // 神門
+  if (gateRow) {
+    gateRow.y += GATE_SPEED * dt;
+    if (!gateRow.resolved && gateRow.y >= PLAYER_Y - 24) {
+      const lane = clamp(Math.floor(player.x / (W / 3)), 0, 2);
+      gateRow.lane = lane;
+      gateRow.success = onGateCollision(gateRow.gates[lane]);
+      gateRow.resolved = true;
+      gateTimer = 7.5;
+    }
+    if (gateRow.y > H + 80) gateRow = null;
+  } else {
+    gateTimer -= dt;
+    if (gateTimer <= 0) {
+      gateRow = { y: GATE_SPAWN_Y, gates: MythGameEngine.generateGates(monster.def, 3), resolved: false, lane: -1, success: false };
+    }
+  }
+
+  // 擊殺判定
+  if (monster.hp <= 0) {
+    monster.hp = 0;
+    phase = 'kill'; phaseT = 2.6;
+    sfx.kill();
+    burst(monster.x, monster.y, '#ffd86b', 90, 380);
+    burst(monster.x, monster.y, '#ff6a2a', 60, 300);
+    rings.push({ x: monster.x, y: monster.y, r: 10, max: 220, life: 0.8, t: 0, color: '#ffd86b' });
+    score += 500 + lives * 100;
+    stats.encounters[stats.encounters.length - 1].outcome = 'win';
+    orbs = [];
+    showMsg(`討伐成功！${monster.def.name} 已被收服。 +${500 + lives * 100} 分`, '#ffd86b', 2.6);
+  }
+}
+
+function updateBullets(dt) {
+  bullets.forEach(b => {
+    if (b.effect === 'homing' && phase === 'fight') {
+      const dx = monster.x - b.x, dy = monster.y - b.y;
+      const dist = Math.hypot(dx, dy) || 1;
+      const sp = Math.hypot(b.vx, b.vy) || BASE_BULLET_SPEED;
+      b.vx += (dx / dist * sp - b.vx) * Math.min(1, dt * 6);
+      b.vy += (dy / dist * sp - b.vy) * Math.min(1, dt * 6);
+      const n = Math.hypot(b.vx, b.vy); b.vx = b.vx / n * sp; b.vy = b.vy / n * sp;
+    }
+    b.x += b.vx * dt; b.y += b.vy * dt;
+
+    // 貫穿：清除路徑上的敵彈
+    if (b.effect === 'pierce') orbs.forEach(o => { if (Math.hypot(o.x - b.x, o.y - b.y) < o.r + 8) { o.dead = true; burst(o.x, o.y, '#44b0ff', 6, 100); } });
+
+    if (!b.hit && phase === 'fight' && Math.hypot(b.x - monster.x, b.y - monster.y) < 56) {
+      b.hit = true;
+      sfx.hit();
+      dealDamage(b.dmg, b.x, b.y);
+      burst(b.x, b.y, BULLET_STYLE[b.key].color, 5, 140);
+      if (b.effect === 'chain') {
+        makeBolt(b.x, b.y, monster.x + rand(-40, 40), monster.y + rand(-30, 30), '#b07aff');
+        dealDamage(b.dmg * 0.3, monster.x, monster.y + 20);
+      } else if (b.effect === 'aoe') {
+        rings.push({ x: b.x, y: b.y, r: 4, max: 80, life: 0.35, t: 0, color: '#ffd93b' });
+        orbs.forEach(o => { if (Math.hypot(o.x - b.x, o.y - b.y) < 90) { o.dead = true; burst(o.x, o.y, '#ffd93b', 8, 120); } });
+        dealDamage(b.dmg * 0.2, b.x, b.y + 10);
+      } else if (b.effect === 'melt') {
+        monster.melt = 2.5;
+      }
+      if (b.effect !== 'pierce') b.dead = true;
+    }
+    if (b.y < -30 || b.x < -30 || b.x > W + 30) b.dead = true;
+  });
+  orbs = orbs.filter(o => !o.dead);
+  bullets = bullets.filter(b => !b.dead);
+}
+
+// ====================== 11. 繪製 ======================
+function drawBullet(b) {
+  const s = BULLET_STYLE[b.key];
+  ctx.save();
+  ctx.translate(b.x, b.y);
+  ctx.rotate(Math.atan2(b.vx, -b.vy));
+  ctx.shadowColor = s.glow; ctx.shadowBlur = 14;
+  ctx.fillStyle = s.color; ctx.strokeStyle = s.color; ctx.lineWidth = 2.5; ctx.lineCap = 'round';
+  switch (s.shape) {
+    case 'trident':
+      ctx.beginPath();
+      ctx.moveTo(0, 11); ctx.lineTo(0, -11);
+      ctx.moveTo(-6, -3); ctx.lineTo(-6, -13);
+      ctx.moveTo(6, -3); ctx.lineTo(6, -13);
+      ctx.moveTo(-6, -3); ctx.lineTo(6, -3);
+      ctx.stroke(); break;
+    case 'chain':
+      for (let i = -1; i <= 1; i++) { ctx.beginPath(); ctx.arc(0, i * 8, 4, 0, 6.3); ctx.stroke(); }
+      break;
+    case 'spear':
+      ctx.beginPath(); ctx.moveTo(0, -17); ctx.lineTo(5, -4); ctx.lineTo(2, 13); ctx.lineTo(-2, 13); ctx.lineTo(-5, -4); ctx.closePath(); ctx.fill(); break;
+    case 'arrow':
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(0, 14); ctx.lineTo(0, -12); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0, -17); ctx.lineTo(5, -8); ctx.lineTo(-5, -8); ctx.closePath(); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(0, 14); ctx.lineTo(-4, 19); ctx.moveTo(0, 14); ctx.lineTo(4, 19); ctx.stroke(); break;
+    case 'sun':
+      ctx.beginPath(); ctx.arc(0, 0, 6, 0, 6.3); ctx.fill();
+      ctx.lineWidth = 2;
+      for (let i = 0; i < 8; i++) {
+        const a = i * Math.PI / 4 + time * 6;
+        ctx.beginPath(); ctx.moveTo(Math.cos(a) * 8, Math.sin(a) * 8); ctx.lineTo(Math.cos(a) * 13, Math.sin(a) * 13); ctx.stroke();
+      }
+      break;
+    case 'lava':
+      ctx.beginPath(); ctx.arc(0, 0, 8, 0, 6.3); ctx.fill();
+      ctx.shadowBlur = 0; ctx.fillStyle = '#7a1500';
+      ctx.beginPath(); ctx.arc(1, 1, 3.5, 0, 6.3); ctx.fill(); break;
+    default:
+      rr(-3, -9, 6, 18, 3); ctx.fill();
+  }
+  ctx.restore();
+}
+
+function drawGates() {
+  if (!gateRow) return;
+  const laneW = W / 3;
+  const playerLane = clamp(Math.floor(player.x / laneW), 0, 2);
+  gateRow.gates.forEach((g, i) => {
+    const x = i * laneW + 8, w = laneW - 16, y = gateRow.y - GATE_H / 2;
+    const col = deityColor(g.deity);
+    let alpha = 1;
+    if (gateRow.resolved) alpha = i === gateRow.lane ? 1 : 0.22;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    const under = !gateRow.resolved && i === playerLane;
+    rr(x, y, w, GATE_H, 14);
+    ctx.fillStyle = under ? 'rgba(255,255,255,0.16)' : 'rgba(20,24,48,0.82)';
+    ctx.fill();
+    ctx.shadowColor = col; ctx.shadowBlur = under ? 22 : 10;
+    ctx.lineWidth = under ? 4 : 2.5;
+    ctx.strokeStyle = gateRow.resolved && i === gateRow.lane ? (gateRow.success ? '#00ff66' : '#ff4444') : col;
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+    txt(g.deity.symbol, x + w / 2, y + 24, 30, '#fff');
+    txt(g.deity.name, x + w / 2, y + 50, g.deity.name.length > 4 ? 15 : 17, '#fff', 'center', true);
+    txt(g.deity.domain, x + w / 2, y + 72, 11, col);
+    txt(g.deity.weaponName, x + w / 2, y + 90, 10.5, 'rgba(255,255,255,0.65)');
+    ctx.restore();
+  });
+}
+
+function drawMonster() {
+  const look = MONSTER_LOOK[monster.def.id];
+  const mx = monster.x, my = monster.y;
+  // 中性紅色氣場（不洩漏答案）
+  const g = ctx.createRadialGradient(mx, my, 10, mx, my, 100);
+  g.addColorStop(0, 'rgba(255,60,60,0.28)'); g.addColorStop(1, 'rgba(255,60,60,0)');
+  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(mx, my, 100, 0, 6.3); ctx.fill();
+  if (monster.melt > 0) {
+    ctx.fillStyle = 'rgba(255,106,42,0.25)'; ctx.beginPath(); ctx.arc(mx, my, 62, 0, 6.3); ctx.fill();
+  }
+  ctx.save();
+  if (phase === 'kill') ctx.globalAlpha = Math.max(0, phaseT / 2.6);
+  if (monster.flash > 0) ctx.filter = 'brightness(2.2)';
+  txt(look.emoji, mx, my, look.size, '#fff');
+  ctx.restore();
+  ctx.filter = 'none';
+
+  // 名稱與領域
+  txt(monster.def.name, W / 2, 258, 17, '#fff', 'center', true);
+  txt(`威脅領域：${monster.def.domainCategory}`, W / 2, 279, 13, '#ff9f9f');
+  // 血條
+  const bw = 320, bx = (W - bw) / 2, by = 126;
+  rr(bx, by, bw, 12, 6); ctx.fillStyle = 'rgba(255,255,255,0.12)'; ctx.fill();
+  const pct = clamp(monster.hp / monster.maxHp, 0, 1);
+  if (pct > 0) {
+    rr(bx, by, bw * pct, 12, 6);
+    const hg = ctx.createLinearGradient(bx, 0, bx + bw, 0);
+    hg.addColorStop(0, '#ff3b3b'); hg.addColorStop(1, '#ff9a4a');
+    ctx.fillStyle = hg; ctx.fill();
+  }
+  ctx.lineWidth = 1.5; ctx.strokeStyle = 'rgba(255,255,255,0.4)'; rr(bx, by, bw, 12, 6); ctx.stroke();
+  txt(`${Math.ceil(monster.hp)} / ${monster.maxHp}`, W / 2, by + 6.5, 10, '#fff');
+}
+
+function drawPlayer() {
+  if (player.inv > 0 && Math.floor(time * 20) % 2 === 0) return;
+  const x = player.x, y = PLAYER_Y;
+  ctx.save();
+  ctx.shadowColor = buff.color; ctx.shadowBlur = 16;
+  ctx.fillStyle = '#e9d9a6';
+  ctx.beginPath(); ctx.moveTo(x, y - 24); ctx.lineTo(x + 17, y + 16); ctx.lineTo(x, y + 8); ctx.lineTo(x - 17, y + 16); ctx.closePath(); ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = buff.color;
+  ctx.beginPath(); ctx.arc(x, y - 2, 5, 0, 6.3); ctx.fill();
+  ctx.restore();
+  if (player.shield > 0) {
+    ctx.strokeStyle = 'rgba(241,210,122,0.85)'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.arc(x, y, 30 + Math.sin(time * 6) * 1.5, 0, 6.3); ctx.stroke();
+  }
+}
+
+function drawHUD() {
+  // 頂部資訊列
+  ctx.fillStyle = 'rgba(0,0,0,0.45)'; ctx.fillRect(0, 0, W, 40);
+  txt(`第 ${waveIdx + 1}/${order.length} 波`, 12, 20, 15, '#fff', 'left', true);
+  txt(`分數 ${score}`, 110, 20, 15, '#ffd86b', 'left', true);
+  let hearts = '';
+  for (let i = 0; i < 3; i++) hearts += i < lives ? '♥' : '♡';
+  txt(hearts, W - 12, 20, 22, '#ff5a6a', 'right', true);
+
+  // 訊息橫幅（滑動顯示，不暫停遊戲）
+  if (msg) {
+    const font = `bold 14px ${FONT}`;
+    const lines = wrapLines(msg.text, W - 44, font);
+    const bh = lines.length * 20 + 14;
+    const slide = Math.min(1, msg.t / 0.25);
+    const fade = clamp((msg.dur - msg.t) / 0.4, 0, 1);
+    const off = (1 - (1 - Math.pow(1 - slide, 3))) * -bh;
+    ctx.save();
+    ctx.globalAlpha = fade;
+    ctx.translate(0, 44 + off);
+    rr(10, 0, W - 20, bh, 10);
+    ctx.fillStyle = 'rgba(8,10,24,0.88)'; ctx.fill();
+    ctx.lineWidth = 2; ctx.strokeStyle = msg.color; ctx.stroke();
+    lines.forEach((l, i) => txt(l, W / 2, 7 + 10 + i * 20, 14, msg.color, 'center', true));
+    ctx.restore();
+  }
+
+  // 底部：武器狀態
+  const eff = EFFECT_NAME[buff.effect];
+  ctx.fillStyle = buff.color; ctx.beginPath(); ctx.arc(16, H - 32, 6, 0, 6.3); ctx.fill();
+  txt(`${buff.name} ×${buff.mult.toFixed(1)}${buff.effect !== 'none' ? ' ・' + eff : ''}`, 28, H - 32, 13, '#fff', 'left', true);
+  if (phase === 'fight' && !gateRow && gateTimer > 0) txt(`下一批神門 ${Math.ceil(gateTimer)}s`, W - 12, H - 32, 12, '#9fb0ff', 'right');
+  txt('← → / 滑動 移動　P 暫停　M 靜音', W / 2, H - 12, 11, 'rgba(255,255,255,0.38)');
+}
+
+function drawBackground() {
+  const g = ctx.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, '#0a0c1e'); g.addColorStop(0.5, '#121634'); g.addColorStop(1, '#1b1840');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  stars.forEach(s => {
+    ctx.globalAlpha = 0.35 + 0.35 * Math.sin(time * 2 + s.p);
+    ctx.fillStyle = '#fff'; ctx.fillRect(s.x, s.y, s.s, s.s);
+  });
+  ctx.globalAlpha = 1;
+  // 神殿立柱剪影
+  ctx.fillStyle = 'rgba(255,255,255,0.025)';
+  for (let i = 0; i < 4; i++) { ctx.fillRect(14 + i * 6 , 300, 3, 440); ctx.fillRect(W - 28 - i * 6, 300, 3, 440); }
+  // 通道分隔線
+  if (phase !== 'title') {
+    ctx.strokeStyle = 'rgba(255,255,255,0.07)'; ctx.setLineDash([8, 10]); ctx.lineWidth = 1;
+    [W / 3, W * 2 / 3].forEach(x => { ctx.beginPath(); ctx.moveTo(x, 290); ctx.lineTo(x, H - 50); ctx.stroke(); });
+    ctx.setLineDash([]);
+    if (gateRow && !gateRow.resolved && player) {
+      const lane = clamp(Math.floor(player.x / (W / 3)), 0, 2);
+      ctx.fillStyle = 'rgba(255,255,255,0.045)';
+      ctx.fillRect(lane * W / 3, 290, W / 3, H - 340);
+    }
+  }
+}
+
+function drawEffects() {
+  rings.forEach(r => {
+    ctx.globalAlpha = 1 - r.t / r.life; ctx.strokeStyle = r.color; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.arc(r.x, r.y, r.r, 0, 6.3); ctx.stroke();
+  });
+  bolts.forEach(b => {
+    ctx.globalAlpha = b.life / 0.25; ctx.strokeStyle = b.color; ctx.lineWidth = 3; ctx.shadowColor = b.color; ctx.shadowBlur = 10;
+    ctx.beginPath(); b.pts.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.stroke();
+    ctx.shadowBlur = 0;
+  });
+  ctx.globalAlpha = 1;
+  particles.forEach(p => {
+    ctx.globalAlpha = clamp(p.life / p.max, 0, 1); ctx.fillStyle = p.color;
+    ctx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
+  });
+  ctx.globalAlpha = 1;
+  floaters.forEach(f => { ctx.globalAlpha = clamp(f.life / 0.6, 0, 1); txt(f.text, f.x, f.y, 13, f.color, 'center', true); });
+  ctx.globalAlpha = 1;
+}
+
+function overlayPanel(title, titleColor) {
+  ctx.fillStyle = 'rgba(4,5,14,0.82)'; ctx.fillRect(0, 0, W, H);
+  txt(title, W / 2, 120, 38, titleColor, 'center', true);
+}
+
+function drawSummary(y0) {
+  const total = stats.right + stats.wrong;
+  txt(`選門正確 ${stats.right} 次　錯誤 ${stats.wrong} 次`, W / 2, y0, 16, '#fff', 'center', true);
+  txt(`踩中混淆陷阱 ${stats.mis} 次　總得分 ${score}`, W / 2, y0 + 26, 14, '#ffd86b');
+  const best = Object.entries(stats.mastered).sort((a, b) => b[1] - a[1])[0];
+  txt(best ? `最常答對：${DEITIES[best[0]].name}（${best[1]} 次）` : '最常答對：—', W / 2, y0 + 58, 14, '#7dff9a');
+  const rv = Object.entries(stats.review).sort((a, b) => b[1] - a[1]).slice(0, 3);
+  if (rv.length) {
+    txt('需要複習的神祇', W / 2, y0 + 96, 14, '#ff8a8a', 'center', true);
+    rv.forEach(([id, n], i) => txt(`${DEITIES[id].symbol} ${DEITIES[id].name}（${DEITIES[id].domain}）— 漏掉 ${n} 次`, W / 2, y0 + 122 + i * 22, 13, '#fff'));
+    const pr = Object.entries(stats.pairs).sort((a, b) => b[1] - a[1]).slice(0, 3);
+    txt('常見誤選', W / 2, y0 + 200, 14, '#ff8a8a', 'center', true);
+    pr.forEach(([k, n], i) => {
+      const [mid, did] = k.split('|');
+      const m = MONSTER_ROSTER.find(x => x.id === mid);
+      txt(`${m.name}：誤選${DEITIES[did].name}（應為${DEITIES[m.rulingDeityId].name}）×${n}`, W / 2, y0 + 226 + i * 22, 12, '#ffd0d0');
+    });
+  } else if (total > 0) {
+    txt('全部答對，沒有需要複習的神祇！', W / 2, y0 + 100, 14, '#7dff9a', 'center', true);
+  }
+}
+
+function drawOverlays() {
+  if (phase === 'title') {
+    overlayPanel('神話之門', '#ffd86b');
+    txt('GATES OF MYTH', W / 2, 160, 14, '#9fb0ff');
+    txt('每隻怪物都有真正的「掌管神祇」', W / 2, 225, 16, '#fff', 'center', true);
+    txt('操控英雄左右移動，穿過正確的神祇之門', W / 2, 255, 14, '#cfd6ff');
+    txt('選對 → 獲得神器：換子彈顏色、傷害 ×2.5～3.2、專屬特效', W / 2, 285, 13, '#7dff9a');
+    txt('選錯 → 火力削弱至 ×0.5，並被神祇當面糾正', W / 2, 310, 13, '#ff8a8a');
+    let x = 60;
+    Object.values(DEITIES).forEach(d => { txt(d.symbol, x, 380, 34, '#fff'); txt(d.name.length > 4 ? d.name.slice(0, 4) : d.name, x, 410, 11, deityColor(d)); x += 72; });
+    txt('← → / A D / 滑鼠 / 手指拖曳 移動（自動射擊）', W / 2, 470, 13, '#fff');
+    txt('P 暫停　M 靜音', W / 2, 494, 12, 'rgba(255,255,255,0.55)');
+    const pulse = 0.65 + 0.35 * Math.sin(time * 4);
+    ctx.globalAlpha = pulse;
+    txt('點擊畫面或按 Enter / 空白鍵 開始', W / 2, 530, 20, '#ffd86b', 'center', true);
+    ctx.globalAlpha = 1;
+    drawTitleLeaderboard();
+  } else if (phase === 'intro') {
+    const a = clamp(phaseT / 0.6, 0, 1);
+    ctx.globalAlpha = a;
+    txt(`第 ${waveIdx + 1} 波`, W / 2, 400, 34, '#ffd86b', 'center', true);
+    txt('神門即將降臨', W / 2, 440, 16, '#cfd6ff');
+    ctx.globalAlpha = 1;
+  } else if (phase === 'kill') {
+    ctx.globalAlpha = clamp(phaseT / 0.8, 0, 1);
+    txt('討伐成功', W / 2, 420, 40, '#ffd86b', 'center', true);
+    ctx.globalAlpha = 1;
+  } else if (phase === 'over' || phase === 'win') {
+    // 結算內容由 HTML 面板（排行榜／學習統計／怪物圖鑑）負責，這裡只壓暗背景
+    ctx.fillStyle = 'rgba(4,5,14,0.88)'; ctx.fillRect(0, 0, W, H);
+  }
+  if (paused) {
+    ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(0, 0, W, H);
+    txt('暫停', W / 2, H / 2, 44, '#fff', 'center', true);
+    txt('按 P 繼續', W / 2, H / 2 + 44, 16, '#cfd6ff');
+  }
+}
+
+function draw() {
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  ctx.save();
+  if (shake > 0) ctx.translate(rand(-1, 1) * 8 * Math.min(1, shake * 3), rand(-1, 1) * 8 * Math.min(1, shake * 3));
+  drawBackground();
+  if (phase !== 'title') {
+    drawMonster();
+    drawGates();
+    orbs.forEach(o => {
+      ctx.save(); ctx.shadowColor = '#ff2d55'; ctx.shadowBlur = 14;
+      ctx.fillStyle = '#ff5470'; ctx.beginPath(); ctx.arc(o.x, o.y, o.r, 0, 6.3); ctx.fill();
+      ctx.fillStyle = '#ffd0d8'; ctx.beginPath(); ctx.arc(o.x, o.y, o.r * 0.4, 0, 6.3); ctx.fill();
+      ctx.restore();
+    });
+    bullets.forEach(drawBullet);
+    if (phase !== 'over' && phase !== 'win') drawPlayer();
+    drawEffects();
+    drawHUD();
+  }
+  drawOverlays();
+  ctx.restore();
+}
+
+// ====================== 12. 輸入 ======================
+function startGame() { initAudio(); sfx.start(); newGame(); }
+function tryStart() {
+  if (phase === 'title') startGame();   // 結算後由面板上的「再玩一次」按鈕重開
+}
+addEventListener('keydown', e => {
+  if (e.target && e.target.tagName === 'INPUT') return;   // 輸入暱稱時不要觸發遊戲按鍵
+  const k = e.key;
+  if (k === 'ArrowLeft' || k === 'a' || k === 'A') { keys.left = true; e.preventDefault(); }
+  else if (k === 'ArrowRight' || k === 'd' || k === 'D') { keys.right = true; e.preventDefault(); }
+  else if (k === 'Enter' || k === ' ') { e.preventDefault(); tryStart(); }
+  else if (k === 'p' || k === 'P') { if (phase !== 'title' && phase !== 'over' && phase !== 'win') paused = !paused; }
+  else if (k === 'm' || k === 'M') { muted = !muted; }
+});
+addEventListener('keyup', e => {
+  const k = e.key;
+  if (k === 'ArrowLeft' || k === 'a' || k === 'A') keys.left = false;
+  if (k === 'ArrowRight' || k === 'd' || k === 'D') keys.right = false;
+});
+function pointerX(e) {
+  const r = canvas.getBoundingClientRect();
+  return (e.clientX - r.left) * (W / r.width);
+}
+canvas.addEventListener('pointermove', e => { targetX = pointerX(e); });
+canvas.addEventListener('pointerdown', e => { targetX = pointerX(e); tryStart(); });
+addEventListener('blur', () => { keys.left = keys.right = false; });
+
+// ====================== 13. 結算、排行榜、怪物圖鑑 ======================
+const $ = id => document.getElementById(id);
+function el(tag, cls, text) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text != null) e.textContent = text;   // 一律用 textContent，暱稱不會被當成 HTML
+  return e;
+}
+
+const LB_LOCAL_KEY = 'mythGate_lb_v1', NICK_KEY = 'mythGate_nick';
+const lb = { rows: [], status: LEADERBOARD_URL ? 'loading' : 'local', mine: null, rank: null, err: '' };
+const cmpRows = (a, b) => (b.score - a.score) || (b.waves - a.waves) || (a.time - b.time);
+
+function localRows() {
+  try { const r = JSON.parse(localStorage.getItem(LB_LOCAL_KEY) || '[]'); return Array.isArray(r) ? r : []; }
+  catch (e) { return []; }
+}
+function saveLocalRow(row) {
+  try {
+    const rows = localRows(); rows.push(row); rows.sort(cmpRows);
+    localStorage.setItem(LB_LOCAL_KEY, JSON.stringify(rows.slice(0, 50)));
+  } catch (e) {}
+}
+async function fetchJSON(url, opts, ms = 9000) {
+  const ctl = new AbortController();
+  const t = setTimeout(() => ctl.abort(), ms);
+  try { const r = await fetch(url, { ...opts, signal: ctl.signal }); return await r.json(); }
+  finally { clearTimeout(t); }
+}
+
+async function loadLeaderboard() {
+  lb.rows = localRows().sort(cmpRows).slice(0, 10);
+  lb.status = LEADERBOARD_URL ? 'loading' : 'local';
+  refreshLbUI();
+  if (!LEADERBOARD_URL) return;
+  try {
+    const data = await fetchJSON(LEADERBOARD_URL + (LEADERBOARD_URL.includes('?') ? '&' : '?') + 'action=top');
+    if (stats && stats.submitted) return;   // 已送分就不要用舊資料覆蓋
+    if (data && data.ok && Array.isArray(data.rows)) { lb.rows = data.rows; lb.status = 'online'; }
+    else throw new Error('bad_response');
+  } catch (e) {
+    if (stats && stats.submitted) return;
+    lb.status = 'offline';
+  }
+  refreshLbUI();
+}
+
+function refreshLbUI() {
+  const statusText = {
+    loading: '排行榜載入中…', online: '', local: '本機排行榜（尚未設定線上排行榜）',
+    offline: '線上排行榜連不上，顯示本機紀錄', submitting: '送出分數中…',
+    rejected: '線上排行榜沒有收下這筆分數（' + lb.err + '），已存在本機'
+  };
+  $('lbStatus').textContent = statusText[lb.status] || '';
+  $('lbRank').textContent = lb.rank ? `你的名次：第 ${lb.rank} 名${lb.status === 'online' ? '' : '（本機）'}` : '';
+  const ol = $('lbList'); ol.innerHTML = '';
+  if (!lb.rows.length) { ol.append(el('li', '', '尚無紀錄，成為第一位英雄！')); return; }
+  lb.rows.slice(0, 10).forEach((r, i) => {
+    const mine = lb.mine && r.ts === lb.mine.ts && r.name === lb.mine.name;
+    const li = el('li', mine ? 'me' : '');
+    li.append(el('span', 'rk', String(i + 1)), el('span', 'nm', r.name), el('span', 'sc', String(r.score)), el('span', 'wv', `${r.waves}/6`));
+    ol.append(li);
+  });
+}
+
+function drawTitleLeaderboard() {
+  txt('排行榜 TOP 5', W / 2, 568, 14, '#ffd86b', 'center', true);
+  const st = { loading: '載入中…', offline: '（線上連不上，顯示本機紀錄）', local: '（本機紀錄）', online: '' }[lb.status] || '';
+  if (st) txt(st, W / 2, 586, 11, 'rgba(255,255,255,0.45)');
+  const rows = lb.rows.slice(0, 5);
+  if (!rows.length) { txt('尚無紀錄，成為第一位英雄！', W / 2, 640, 13, 'rgba(255,255,255,0.6)'); return; }
+  rows.forEach((r, i) => {
+    const y = 610 + i * 21;
+    txt(String(i + 1), 100, y, 14, '#ffd86b', 'left', true);
+    txt(r.name, 130, y, 14, '#fff', 'left');
+    txt(String(r.score), 350, y, 14, '#fff', 'right', true);
+    txt(`${r.waves}/6 波`, 380, y, 12, '#9fb0ff', 'left');
+  });
+}
+
+// ---- 結算 ----
+function endRun(win) {
+  phase = win ? 'win' : 'over';
+  overT = 0; msg = null; orbs = []; keys.left = keys.right = false;
+  const enc = stats.encounters[stats.encounters.length - 1];
+  if (!win && enc) enc.outcome = 'lose';
+  const total = stats.right + stats.wrong;
+  stats.bonus = 0;
+  if (win) {
+    stats.bonus = Math.round((total ? stats.right / total : 0) * 1000);   // 準確率獎勵
+    score += stats.bonus;
+    sfx.kill();
+  }
+  showEndPanel();
+}
+
+function showEndPanel() {
+  const win = phase === 'win';
+  const total = stats.right + stats.wrong;
+  const waves = stats.encounters.filter(e => e.outcome === 'win').length;
+  $('uiTitle').textContent = win ? '試煉通過！' : '試煉失敗';
+  $('uiTitle').style.color = win ? '#ffd86b' : '#ff5a6a';
+  $('uiSub').textContent = `得分 ${score}　通過 ${waves}/${order.length} 波　準確率 ${total ? Math.round(stats.right / total * 100) : 0}%` +
+    (win ? `　（準確率獎勵 +${stats.bonus}）` : '');
+  let nick = '';
+  try { nick = localStorage.getItem(NICK_KEY) || ''; } catch (e) {}
+  $('nick').value = nick; $('nick').disabled = false; $('submitBtn').disabled = false;
+  $('submitRow').hidden = false;
+  lb.mine = null; lb.rank = null;
+  buildStatsTab(); buildDexTab();
+  selectTab('lb');
+  $('ui').hidden = false;
+  loadLeaderboard();
+}
+function hideEndPanel() { $('ui').hidden = true; }
+
+function selectTab(name) {
+  document.querySelectorAll('.tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === name));
+  ['lb', 'stats', 'dex'].forEach(t => { $('tab-' + t).hidden = t !== name; });
+}
+document.querySelectorAll('.tabs button').forEach(b => b.addEventListener('click', () => selectTab(b.dataset.tab)));
+$('again').addEventListener('click', () => startGame());
+$('submitBtn').addEventListener('click', () => submitScore());
+$('nick').addEventListener('keydown', e => { if (e.key === 'Enter') submitScore(); });
+
+async function submitScore() {
+  if (!stats || stats.submitted) return;
+  stats.submitted = true;
+  $('submitBtn').disabled = true; $('nick').disabled = true;
+  const name = ($('nick').value || '').trim().slice(0, 12) || '無名英雄';
+  try { localStorage.setItem(NICK_KEY, name); } catch (e) {}
+  const waves = stats.encounters.filter(e => e.outcome === 'win').length;
+  const row = {
+    name, score, waves, time: Math.round(stats.runTime), right: stats.right, wrong: stats.wrong,
+    win: phase === 'win', ts: Date.now(), elapsed: Math.round((Date.now() - stats.startWall) / 1000)
+  };
+  lb.mine = { name, ts: row.ts };
+  saveLocalRow(row);
+  const local = localRows().sort(cmpRows);
+  lb.rank = local.findIndex(r => r.ts === row.ts && r.name === name) + 1;
+  lb.rows = local.slice(0, 10);
+  lb.status = LEADERBOARD_URL ? 'submitting' : 'local';
+  refreshLbUI();
+  if (LEADERBOARD_URL) {
+    try {
+      // 用 text/plain 送出，避免瀏覽器的跨網域預檢（GAS 不支援 OPTIONS）
+      const data = await fetchJSON(LEADERBOARD_URL, {
+        method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(row), redirect: 'follow'
+      });
+      if (data && data.ok) { lb.rows = data.rows || lb.rows; lb.rank = data.rank || null; lb.status = 'online'; }
+      else { lb.status = 'rejected'; lb.err = (data && data.error) || 'unknown'; }
+    } catch (e) { lb.status = 'offline'; }
+  }
+  $('submitRow').hidden = true;
+  refreshLbUI();
+}
+
+// ---- 學習統計分頁 ----
+function buildStatsTab() {
+  const box = $('tab-stats'); box.innerHTML = '';
+  const total = stats.right + stats.wrong;
+  box.append(el('p', '', `選門正確 ${stats.right} 次　錯誤 ${stats.wrong} 次`));
+  box.append(el('p', '', `踩中混淆陷阱 ${stats.mis} 次　準確率 ${total ? Math.round(stats.right / total * 100) : 0}%`));
+  const best = Object.entries(stats.mastered).sort((a, b) => b[1] - a[1])[0];
+  box.append(el('p', 'good', best ? `最常答對：${DEITIES[best[0]].name}（${best[1]} 次）` : '最常答對：—'));
+  const rv = Object.entries(stats.review).sort((a, b) => b[1] - a[1]).slice(0, 3);
+  if (rv.length) {
+    box.append(el('h3', '', '需要複習的神祇'));
+    rv.forEach(([id, n]) => { const d = DEITIES[id]; box.append(el('p', 'bad', `${d.symbol} ${d.name}（${d.domain}）— 漏掉 ${n} 次`)); });
+    box.append(el('h3', '', '常見誤選'));
+    Object.entries(stats.pairs).sort((a, b) => b[1] - a[1]).slice(0, 3).forEach(([k, n]) => {
+      const [mid, did] = k.split('|');
+      const m = MONSTER_ROSTER.find(x => x.id === mid);
+      box.append(el('p', 'bad', `${m.name}：誤選${DEITIES[did].name}（應為${DEITIES[m.rulingDeityId].name}）×${n}`));
+    });
+  } else if (total) box.append(el('p', 'good', '全部答對，沒有需要複習的神祇！'));
+  else box.append(el('p', '', '這局還沒選過門。'));
+}
+
+// ---- 本局遭遇怪物圖鑑：點開才展開典故 ----
+function buildDexTab() {
+  const box = $('tab-dex'); box.innerHTML = '';
+  box.append(el('p', 'hint', '點開怪物，查看牠背後的神話典故與你的選擇。'));
+  stats.encounters.forEach(enc => {
+    const m = MONSTER_ROSTER.find(x => x.id === enc.monsterId);
+    const lore = MONSTER_LORE[m.id];
+    const det = el('details', 'dex');
+    const sum = el('summary', '');
+    sum.append(el('span', 'ico', lore.icon), el('span', 'mn', m.name),
+      el('span', 'badge ' + (enc.outcome === 'win' ? 'win' : 'lose'), enc.outcome === 'win' ? '討伐' : '害你喪命'));
+    det.append(sum);
+    det.append(el('p', 'story', lore.story));
+    if (lore.note) det.append(el('p', 'note', lore.note));
+    const correct = DEITIES[m.rulingDeityId];
+    det.append(el('p', 'key', `正解神祇：${correct.symbol} ${correct.name}（${correct.domain}）`));
+    if (enc.right + enc.wrong === 0) det.append(el('p', '', '你還沒來得及選門就倒下了。'));
+    else {
+      det.append(el('p', '', `你的選門：正確 ${enc.right} 次、錯誤 ${enc.wrong} 次`));
+      [...new Set(enc.chosen)].forEach(id => {
+        const line = REBUKE_DIALOGUES[id]?.[m.rulingDeityId];
+        det.append(el('p', 'bad', `誤選 ${DEITIES[id].name}${m.confusionDeityIds.includes(id) ? '（踩中混淆陷阱）' : ''}${line ? '　' + line : ''}`));
+      });
+    }
+    box.append(det);
+  });
+}
+
+loadLeaderboard();
+
+// ====================== 14. 主迴圈 ======================
+let last = performance.now();
+function frame(now) {
+  const dt = Math.min(0.05, (now - last) / 1000);
+  last = now;
+  if (!paused) update(dt);
+  draw();
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
