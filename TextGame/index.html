@@ -1,0 +1,1167 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>地中海之路：從雅典到羅馬</title>
+  <style>
+    :root {
+      --bg-color: #f5efe6;
+      --card-bg: #ffffff;
+      --text-main: #2b2b2b;
+      --text-muted: #6b635b;
+      --border-color: #d8cebe;
+      --primary: #8b4513;
+      --primary-hover: #6d340c;
+      --gold: #b8860b;
+      --gold-bg: #fffdf5;
+      --history-bg: #faf6ee;
+      --history-border: #c8b89e;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans TC", "Helvetica Neue", Arial, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      display: flex;
+      justify-content: center;
+      padding: 20px 12px;
+      min-height: 100vh;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 720px;
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* 頂部導航與成就徽章 */
+    .top-header {
+      background-color: #3e2723;
+      color: #ede0d4;
+      padding: 12px 18px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .main-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+
+    .collection-btn {
+      background-color: #5d4037;
+      color: #fff;
+      border: 1px solid #8d6e63;
+      border-radius: 20px;
+      padding: 5px 12px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: background 0.2s;
+    }
+
+    .collection-btn:hover {
+      background-color: #795548;
+    }
+
+    /* 數值面板 */
+    .status-bar {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      background-color: #ece4d7;
+      border-bottom: 2px solid var(--border-color);
+      padding: 10px 8px;
+      text-align: center;
+    }
+
+    .stat-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .stat-label {
+      font-size: 0.8rem;
+      font-weight: bold;
+      color: var(--text-muted);
+    }
+
+    .stat-val {
+      font-size: 1.15rem;
+      font-weight: bold;
+      color: var(--primary);
+    }
+
+    /* 遊戲主內容 */
+    .game-body {
+      padding: 22px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      flex-grow: 1;
+    }
+
+    .header-info {
+      text-align: center;
+    }
+
+    .level-tag {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #8c7863;
+      letter-spacing: 1px;
+    }
+
+    .stage-title {
+      font-size: 1.35rem;
+      margin-top: 4px;
+      color: #1a1a1a;
+    }
+
+    .stage-year {
+      font-size: 0.95rem;
+      color: #7a6e65;
+      font-style: italic;
+    }
+
+    .illustration {
+      text-align: center;
+      font-size: 3.8rem;
+      padding: 8px 0;
+      user-select: none;
+    }
+
+    .narrative-box {
+      font-size: 1rem;
+      line-height: 1.6;
+      background-color: #faf7f2;
+      padding: 16px;
+      border-radius: 8px;
+      border-left: 4px solid var(--primary);
+    }
+
+    /* 選項列表 */
+    .choices-container {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 6px;
+    }
+
+    .choice-btn {
+      background-color: #fff;
+      border: 1.5px solid var(--border-color);
+      border-radius: 8px;
+      padding: 12px 14px;
+      text-align: left;
+      font-size: 0.95rem;
+      line-height: 1.45;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+    }
+
+    .choice-btn:hover {
+      background-color: #fbf5ee;
+      border-color: var(--primary);
+      transform: translateY(-1px);
+    }
+
+    .choice-btn span.tag {
+      font-weight: bold;
+      color: var(--primary);
+      min-width: 20px;
+    }
+
+    /* 歷史小卡與卡片解鎖 */
+    .history-card {
+      display: none;
+      background-color: var(--history-bg);
+      border: 1px solid var(--history-border);
+      border-radius: 8px;
+      padding: 16px;
+      margin-top: 6px;
+      animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .history-card h4 {
+      font-size: 0.98rem;
+      margin-bottom: 8px;
+      color: #5d4037;
+    }
+
+    .history-result {
+      font-size: 0.95rem;
+      line-height: 1.5;
+      margin-bottom: 10px;
+    }
+
+    .history-knowledge {
+      font-size: 0.9rem;
+      color: #4a4039;
+      line-height: 1.5;
+      border-top: 1px dashed #d7ccc8;
+      padding-top: 8px;
+    }
+
+    /* 解鎖卡片提示橫幅 */
+    .card-unlocked-banner {
+      margin-top: 10px;
+      padding: 8px 12px;
+      background-color: #fff8e1;
+      border: 1px solid #ffe082;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.9rem;
+      color: #8d6e63;
+      font-weight: bold;
+    }
+
+    .card-unlocked-banner .c-icon {
+      font-size: 1.3rem;
+    }
+
+    .stat-changes {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 8px;
+      font-size: 0.85rem;
+      font-weight: bold;
+    }
+
+    .stat-change-up { color: #2e7d32; }
+    .stat-change-down { color: #c62828; }
+
+    .next-btn {
+      display: none;
+      background-color: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 14px;
+      font-size: 1rem;
+      font-weight: bold;
+      cursor: pointer;
+      text-align: center;
+      margin-top: 10px;
+      transition: background 0.2s;
+    }
+
+    .next-btn:hover {
+      background-color: var(--primary-hover);
+    }
+
+    /* 結局結算面板 */
+    .ending-panel {
+      display: none;
+      text-align: center;
+      padding: 10px 0;
+    }
+
+    .title-badge-box {
+      background: linear-gradient(135deg, #fff7e6 0%, #fff0d4 100%);
+      border: 2px solid #deb887;
+      border-radius: 12px;
+      padding: 16px;
+      margin: 12px 0;
+    }
+
+    .badge-icon {
+      font-size: 3.2rem;
+      margin-bottom: 6px;
+    }
+
+    .ending-title-text {
+      font-size: 1.5rem;
+      color: #5c3818;
+      font-weight: bold;
+      margin-bottom: 6px;
+    }
+
+    .title-meaning {
+      font-size: 0.92rem;
+      color: #795548;
+      font-weight: 600;
+    }
+
+    .ending-desc {
+      font-size: 0.95rem;
+      line-height: 1.65;
+      color: #3e3833;
+      margin: 16px 0;
+      text-align: left;
+      background-color: #faf7f2;
+      padding: 16px;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      margin-top: 8px;
+    }
+
+    .restart-btn, .view-album-btn {
+      border: none;
+      border-radius: 8px;
+      padding: 12px 20px;
+      font-size: 0.95rem;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .restart-btn {
+      background-color: var(--primary);
+      color: white;
+    }
+
+    .view-album-btn {
+      background-color: #6d4c41;
+      color: white;
+    }
+
+    /* 收集冊 Modal 彈窗 */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.55);
+      z-index: 999;
+      justify-content: center;
+      align-items: center;
+      padding: 16px;
+    }
+
+    .modal-content {
+      background: #fff;
+      width: 100%;
+      max-width: 650px;
+      max-height: 85vh;
+      border-radius: 12px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    }
+
+    .modal-header {
+      background: #3e2723;
+      color: #ede0d4;
+      padding: 14px 18px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .modal-close {
+      background: none;
+      border: none;
+      color: #ede0d4;
+      font-size: 1.5rem;
+      cursor: pointer;
+    }
+
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+      gap: 12px;
+      padding: 18px;
+      overflow-y: auto;
+      background-color: #f7f3ec;
+    }
+
+    .card-item {
+      background: #fff;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 12px 8px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      transition: transform 0.2s;
+    }
+
+    .card-item.locked {
+      background: #eae5de;
+      border-color: #d1c7bc;
+      color: #9e9389;
+      opacity: 0.75;
+    }
+
+    .card-item.hidden-locked {
+      background: #dfdbd3;
+      border: 1px dashed #bcaaa4;
+    }
+
+    .card-item .c-icon {
+      font-size: 2rem;
+    }
+
+    .card-item .c-name {
+      font-size: 0.85rem;
+      font-weight: bold;
+      color: #3e2723;
+    }
+
+    .card-item.locked .c-name {
+      color: #795548;
+    }
+
+    .card-item .c-badge {
+      font-size: 0.7rem;
+      background: #ece3d5;
+      padding: 2px 6px;
+      border-radius: 10px;
+      color: #5d4037;
+    }
+
+    .card-item.secret-card {
+      border: 1.5px solid #d4af37;
+      background: #fffdf5;
+    }
+
+    /* 簡易卡片詳情彈跳層 */
+    .card-desc-tooltip {
+      font-size: 0.75rem;
+      color: #555;
+      line-height: 1.35;
+      margin-top: 4px;
+      text-align: left;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <!-- 頂部標題與收集冊入口 -->
+  <div class="top-header">
+    <div class="main-title">《地中海之路：從雅典到羅馬》</div>
+    <button class="collection-btn" onclick="openModal()">
+      <span>📜 文明遺產卡</span>
+      <span id="header-card-count">(0 / 16)</span>
+    </button>
+  </div>
+
+  <!-- 四項數值面板 -->
+  <div class="status-bar">
+    <div class="stat-item">
+      <span class="stat-label">民心</span>
+      <span id="stat-morale" class="stat-val">50</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-label">軍力</span>
+      <span id="stat-military" class="stat-val">50</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-label">財富</span>
+      <span id="stat-wealth" class="stat-val">50</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-label">文化影響力</span>
+      <span id="stat-culture" class="stat-val">50</span>
+    </div>
+  </div>
+
+  <!-- 主遊玩區塊 -->
+  <div class="game-body" id="play-area">
+    <div class="header-info">
+      <div id="stage-num" class="level-tag">第 1 關 / 共 8 關</div>
+      <h2 id="stage-title" class="stage-title">關卡載入中...</h2>
+      <div id="stage-year" class="stage-year">年份</div>
+    </div>
+
+    <div id="stage-art" class="illustration">🏛️</div>
+
+    <div id="stage-text" class="narrative-box">
+      事件敘述載入中...
+    </div>
+
+    <!-- 選項按鈕 -->
+    <div id="choices-box" class="choices-container"></div>
+
+    <!-- 歷史反饋與卡片獎勵 -->
+    <div id="history-box" class="history-card">
+      <h4>📜 歷史後果與反思</h4>
+      <p id="feedback-text" class="history-result"></p>
+      <p id="knowledge-text" class="history-knowledge"></p>
+      
+      <div id="unlocked-cards-container"></div>
+      <div id="stat-changes-box" class="stat-changes"></div>
+    </div>
+
+    <button id="next-btn" class="next-btn">邁向下一歷史節點 →</button>
+  </div>
+
+  <!-- 終局結算區塊 -->
+  <div class="game-body ending-panel" id="ending-area">
+    <div class="title-badge-box">
+      <div class="badge-icon" id="ending-badge-icon">👑</div>
+      <div class="ending-title-text" id="ending-title-name">獲得稱號</div>
+      <div class="title-meaning" id="ending-title-meaning">歷史定位與意義</div>
+    </div>
+
+    <div class="ending-desc" id="ending-desc">結局評語</div>
+
+    <div class="btn-group">
+      <button class="view-album-btn" onclick="openModal()">檢視文明遺產卡冊</button>
+      <button class="restart-btn" onclick="restartGame()">嘗試不同歷史抉擇</button>
+    </div>
+  </div>
+</div>
+
+<!-- 文明遺產卡收集冊 Modal -->
+<div class="modal-overlay" id="cards-modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3 style="font-size:1.1rem;">🏛️ 文明遺產卡收集冊</h3>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div style="padding:10px 18px; background:#fff; font-size:0.88rem; color:#6d4c41; border-bottom:1px solid #ebd9c8; display:flex; justify-content:space-between; align-items:center;">
+      <span id="modal-card-counter">已收集 0 / 16 張文明遺產卡</span>
+      <span style="font-size:0.8rem; color:#8d6e63;">※ 重複遊玩可累積解鎖</span>
+    </div>
+    <div class="card-grid" id="card-grid-container"></div>
+  </div>
+</div>
+
+<script>
+  // 16 張文明遺產卡資料庫
+  const ALL_CARDS = [
+    { id: "c1", name: "希臘陶瓶", icon: "🏺", desc: "希臘人把神話與生活彩繪在陶器上，留存永恆藝術。", unlockTip: "在希臘關卡選擇發展文化" },
+    { id: "c2", name: "斯巴達盾牌", icon: "🛡️", desc: "重裝步兵重視紀律與軍事訓練，築起血肉長城。", unlockTip: "在希臘衝突中強化軍備力量" },
+    { id: "c3", name: "雅典三列槳座戰船", icon: "🚢", desc: "雅典靠強大海軍抵禦外敵，並繁榮地中海貿易。", unlockTip: "在波斯入侵時選擇加強海軍" },
+    { id: "c4", name: "雅典公民大會", icon: "🏛️", desc: "雅典發展出讓成年男性公民直接參與決策的政治制度。", unlockTip: "在城邦內部衝突中促成和平討論" },
+    { id: "c5", name: "亞歷山大遠征旗", icon: "🐎", desc: "馬其頓鐵蹄跨越歐亞非，推動希臘文化大規模傳播。", unlockTip: "在亞歷山大關卡選擇建立城市推廣文化" },
+    { id: "c6", name: "羅馬道路", icon: "🛞", desc: "條條大路通羅馬，石板道路連接帝國軍事與商務網絡。", unlockTip: "在帝國治理時選擇鋪設道路公共工程" },
+    { id: "c7", name: "水道橋", icon: "💧", desc: "宏偉的拱券引水工程，為繁華的羅馬城市引入潔淨泉水。", unlockTip: "在帝國治理時選擇修築引水道" },
+    { id: "c8", name: "十二銅表法", icon: "⚖️", desc: "羅馬最早的成文法典，奠定西方近代法治精神基石。", unlockTip: "在共和國危機中維護法治體制" },
+    { id: "c9", name: "鬥獸場門票", icon: "🏟️", desc: "龐大的圓形競技場，提供帝國平民「麵包與馬戲」的公共娛樂。", unlockTip: "在帝國盛世選擇大興公共娛樂建設" },
+    { id: "c10", name: "奧古斯都桂冠", icon: "👑", desc: "屋大維兼顧共和形式與統治實權，成為羅馬第一位元首。", unlockTip: "在共和轉向帝國時選擇元首制" },
+    { id: "c11", name: "烏鴉吊橋", icon: "⚓", desc: "第一次布匿戰爭中，羅馬以吊橋將海戰轉變為擅長的步兵白刃戰。", unlockTip: "在布匿戰爭時改造海軍戰術" },
+    { id: "c12", name: "君士坦丁新都標記", icon: "🏰", desc: "政治重心東遷君士坦丁堡，奠定東羅馬千年的基業。", unlockTip: "在帝國晚期選擇遷都東方" },
+    
+    // 4 張隱藏卡
+    { id: "h1", name: "和平條約", icon: "🕊️", desc: "隱藏成就：以溝通取代流血，展現歷史上極為罕見的高超外交智慧。", unlockTip: "【隱藏卡】連續兩次選擇外交談判或結盟", isSecret: true },
+    { id: "h2", name: "民主火炬", icon: "🔥", desc: "隱藏成就：在威脅與爭論中，始終堅持公民大會民主投票的決策價值。", unlockTip: "【隱藏卡】在雅典面臨衝突時選擇公民共同和解", isSecret: true },
+    { id: "h3", name: "羅馬工程師", icon: "⚒️", desc: "隱藏成就：同時掌握了羅馬帝國最引以為傲的兩大土木奇蹟（道路與水道）。", unlockTip: "【隱藏卡】在遊戲中同時取得「羅馬道路」與「水道橋」", isSecret: true },
+    { id: "h4", name: "希臘化世界", icon: "🌍", desc: "隱藏成就：促成希臘、波斯與東方文明的深層對話與融合。", unlockTip: "【隱藏卡】完成亞歷山大遠征後，全力投入文化融合", isSecret: true }
+  ];
+
+  // 讀取/儲存收集冊 (localStorage)
+  function getUnlockedCards() {
+    try {
+      const saved = localStorage.getItem("mediterranean_collected_cards");
+      return saved ? JSON.parse(saved) : [];
+    } catch(e) {
+      return [];
+    }
+  }
+
+  function saveUnlockedCard(cardId) {
+    let collected = getUnlockedCards();
+    if (!collected.includes(cardId)) {
+      collected.push(cardId);
+      try {
+        localStorage.setItem("mediterranean_collected_cards", JSON.stringify(collected));
+      } catch(e) {}
+    }
+    updateHeaderCardCount();
+    return cardId;
+  }
+
+  // 遊戲即時狀態
+  let stats = { morale: 50, military: 50, wealth: 50, culture: 50 };
+  let currentStageIndex = 0;
+  
+  // 隱藏卡追蹤條件
+  let historyTracker = {
+    diplomacyStreak: 0,
+    hasBuiltRoad: false,
+    hasBuiltAqueduct: false
+  };
+
+  // 8 個關卡事件
+  const stages = [
+    {
+      stageNum: 1,
+      year: "西元前 490 年",
+      title: "波斯入侵希臘半島",
+      art: "🏹",
+      text: "龐大的波斯帝國大軍渡海而來，各希臘城邦面臨生死存亡。身為雅典決策核心，你打算如何應對？",
+      choices: [
+        {
+          label: "建造三列槳座海軍，準備在海上迎擊波斯艦隊",
+          impact: { morale: 0, military: 15, wealth: -15, culture: 5 },
+          grantCards: ["c3"],
+          actionType: "military",
+          feedback: "你投入大量白銀擴充海軍戰船，奠定了日後薩拉米斯海戰的反擊實力！",
+          knowledge: "雅典將領地米斯托克利主張打造海軍，希臘聯軍最終靠海上戰術阻截了波斯主力。"
+        },
+        {
+          label: "奔走各方，與斯巴達等城邦組成反波斯防衛聯盟",
+          impact: { morale: 20, military: 10, wealth: -5, culture: 10 },
+          grantCards: ["c1"],
+          actionType: "diplomacy",
+          feedback: "平時互不服氣的城邦破天荒放下成見，團結抵抗強大的外敵侵略。",
+          knowledge: "希臘城邦平時高度獨立競爭，但在面對外族波斯入侵時，聯盟合作成為救國關鍵。"
+        },
+        {
+          label: "向波斯使者獻上水與土，求取屈辱但暫時的和平",
+          impact: { morale: -25, military: -10, wealth: 10, culture: -20 },
+          grantCards: [],
+          actionType: "surrender",
+          feedback: "雖然免於刀兵洗劫，但城邦失去獨立自由，市民深感挫敗與不滿。",
+          knowledge: "歷史上部分希臘北部小邦選擇歸順波斯，但雅典與斯巴達決心抵抗，確立了希臘世界的命運。"
+        }
+      ]
+    },
+    {
+      stageNum: 2,
+      year: "西元前 431 年",
+      title: "雅典與斯巴達的內耗",
+      art: "⚔️",
+      text: "波斯威脅退去後，雅典提洛同盟與斯巴達伯羅奔尼撒同盟發生激烈衝突，希臘城邦陷入內戰邊緣。",
+      choices: [
+        {
+          label: "動員公民大會，尋求外交斡旋避免城邦手足相殘",
+          impact: { morale: 15, military: -5, wealth: -5, culture: 20 },
+          grantCards: ["c4"],
+          actionType: "diplomacy",
+          feedback: "你選擇了對話與公民投票程序，延續了古典哲學與藝術的黃金期。",
+          knowledge: "雅典的公民大會是直接民主的實驗場；然而各城邦利益糾葛太深，和平十分脆弱。"
+        },
+        {
+          label: "大舉擴編斯巴達式重裝步兵，準備全面決一死戰",
+          impact: { morale: -10, military: 20, wealth: -20, culture: -10 },
+          grantCards: ["c2"],
+          actionType: "military",
+          feedback: "重甲軍團戰力暴漲，但全希臘陷入了漫長殘酷的二十七年伯羅奔尼撒內戰。",
+          knowledge: "斯巴達以極其嚴格的軍國體制聞名；長年內戰最終讓所有希臘城邦元氣大傷。"
+        },
+        {
+          label: "封鎖海上所有商路，藉由貿易禁運拖垮對手經濟",
+          impact: { morale: -5, military: 5, wealth: 15, culture: -5 },
+          grantCards: [],
+          actionType: "wealth",
+          feedback: "貿易禁運充實了自家金庫，但城邦間的敵意已無法挽回。",
+          knowledge: "雅典曾實施麥加拉法令（Megarian Decree）封鎖商路，成為引爆全希臘內戰的導火線之一。"
+        }
+      ]
+    },
+    {
+      stageNum: 3,
+      year: "西元前 334 年",
+      title: "亞歷山大東征與新世界",
+      art: "🐎",
+      text: "年輕的亞歷山大大帝擊潰波斯，一路推進至印度河畔。橫跨歐亞非的龐大領域該如何長久統治？",
+      choices: [
+        {
+          label: "興建數十座希臘式城市（如亞歷山大港）並建立大型圖書館",
+          impact: { morale: 10, military: 5, wealth: -10, culture: 25 },
+          grantCards: ["c5"],
+          actionType: "culture",
+          feedback: "希臘語、幾何學與哲學在東方落地生根，世界級的文化交流正式展開！",
+          knowledge: "亞歷山大沿途興建多座以自己為名的城市，埃及的亞歷山大港隨後成為古代科學與學術殿堂。"
+        },
+        {
+          label: "推行種族融合政策，採用波斯宮廷禮制並鼓勵跨族聯姻",
+          impact: { morale: 5, military: 0, wealth: 15, culture: 20 },
+          grantCards: [],
+          actionType: "culture_mix",
+          feedback: "你打破了希臘人與外族的隔閡，催生了包容開放的「希臘化時代」。",
+          knowledge: "亞歷山大曾主持蘇薩集體婚禮，推動希臘與波斯文化融合，深刻改變了古代近東文明面貌。"
+        },
+        {
+          label: "只維持鐵血駐軍，將東方寶庫的黃金源源不絕運回希臘享樂",
+          impact: { morale: -5, military: -15, wealth: 30, culture: -15 },
+          grantCards: [],
+          actionType: "wealth",
+          feedback: "貴族獲得了揮霍不盡的財富，但被征服地區怨聲載道，統治基礎搖搖欲墜。",
+          knowledge: "亞歷山大將掠奪自波斯的鉅額國庫金銀鑄成貨幣流通，客觀上刺激了商業，但單純掠奪無法長久。"
+        }
+      ]
+    },
+    {
+      stageNum: 4,
+      year: "西元前 264 年",
+      title: "羅馬與迦太基爭奪地中海",
+      art: "⚓",
+      text: "新興的羅馬共和國走向海洋，與西地中海貿易霸主迦太基在西西里島狹路相逢。布匿戰爭爆發！",
+      choices: [
+        {
+          label: "模仿迦太基戰船打造新海軍，發明烏鴉吊橋登艦接舷肉搏",
+          impact: { morale: 15, military: 20, wealth: -15, culture: 5 },
+          grantCards: ["c11"],
+          actionType: "military",
+          feedback: "羅馬將海戰巧妙轉化為陸戰，徹底擊潰迦太基艦隊，奪取地中海制海權！",
+          knowledge: "羅馬人發明「烏鴉吊橋（Corvus）」，讓重裝步兵直接衝上敵艦，化解了自身早期海戰技術的不足。"
+        },
+        {
+          label: "避開正面海戰，專注鞏固本土農業與義大利同盟城邦",
+          impact: { morale: -5, military: -5, wealth: 15, culture: 5 },
+          grantCards: [],
+          actionType: "wealth",
+          feedback: "你保全了農田，但迦太基掐住了海上命脈，羅馬難以跨出半島成為大國。",
+          knowledge: "地中海貿易是古代世界的財富源泉，羅馬若不擊敗迦太基，就無法成為橫跨地中海的帝國。"
+        },
+        {
+          label: "投入全部財富雇用希臘傭兵與各國艦隊代為作戰",
+          impact: { morale: -15, military: 5, wealth: -25, culture: 0 },
+          grantCards: [],
+          actionType: "mercenary",
+          feedback: "傭兵花費驚人且在逆境時毫無忠誠可言，差點拖垮共和國公庫。",
+          knowledge: "迦太基高度依賴傭兵部隊，而羅馬在布匿戰爭中主要靠公民動員與堅定同盟體系取得最後勝利。"
+        }
+      ]
+    },
+    {
+      stageNum: 5,
+      year: "西元前 49 年",
+      title: "羅馬共和國的權力裂痕",
+      art: "🏛️",
+      text: "海外擴張使貴族透過奴隸莊園獲取暴利，平民農民大量破產。凱撒威望日盛，元老院下令他解除兵權。",
+      choices: [
+        {
+          label: "堅守十二銅表法的憲政精神，支持元老院維護法治秩序",
+          impact: { morale: -10, military: -10, wealth: 15, culture: 15 },
+          grantCards: ["c8"],
+          actionType: "law",
+          feedback: "你保全了傳統共和的法治形式，但貧富嚴重懸殊的根本矛盾依然未解。",
+          knowledge: "羅馬十二銅表法奠定了西方成文法傳統，但共和晚期寡頭腐敗，法律已難以解決土地兼併危機。"
+        },
+        {
+          label: "支持凱撒渡過盧比孔河，實行土地與糧食改革救濟貧民",
+          impact: { morale: 20, military: 15, wealth: -5, culture: -5 },
+          grantCards: [],
+          actionType: "reform",
+          feedback: "廣大平民熱烈擁戴！但元老院傳統共和權力瓦解，軍事強人獨裁時代來臨。",
+          knowledge: "凱撒跨過盧比孔河進軍羅馬並成為終身獨裁官，象徵運作近五百年的羅馬共和體制走入終局。"
+        },
+        {
+          label: "動用軍隊武力鎮壓平民抗爭，維護元老院奴隸莊園利益",
+          impact: { morale: -25, military: 10, wealth: 15, culture: -15 },
+          grantCards: [],
+          actionType: "oppress",
+          feedback: "街頭抗爭雖被鎮壓，但平民與軍人的離心離德讓國家陷入更大的內戰陰影。",
+          knowledge: "羅馬共和末期蘇拉等人的流血清算開創了軍事干政惡例，使國家陷入反覆內戰。"
+        }
+      ]
+    },
+    {
+      stageNum: 6,
+      year: "西元前 27 年",
+      title: "屋大維與帝國誕生",
+      art: "👑",
+      text: "內戰平息後，屋大維掌握羅馬最高大權。羅馬人極度痛恨「國王」，究竟該建立什麼樣的體制？",
+      choices: [
+        {
+          label: "保留元老院外觀，自稱「第一公民（元首）」，開創元首制",
+          impact: { morale: 20, military: 15, wealth: 15, culture: 15 },
+          grantCards: ["c10"],
+          actionType: "empire",
+          feedback: "屋大維獲得「奧古斯都」尊號，開啟長達兩百年的「羅馬和平（Pax Romana）」！",
+          knowledge: "屋大維並未直接稱王稱帝，而是透過「元首制（Principate）」包裝個人實權，羅馬正式轉為帝國。"
+        },
+        {
+          label: "直接加冕為神權國王，公開廢除元老院與公民投票",
+          impact: { morale: -25, military: 5, wealth: 5, culture: -20 },
+          grantCards: [],
+          actionType: "monarchy",
+          feedback: "觸犯了羅馬人反對王權的歷史禁忌，刺殺陰謀與社會動盪再度浮現。",
+          knowledge: "自西元前 509 年驅逐暴君後，羅馬人深惡痛絕「國王（Rex）」，凱撒也是因疑似稱王而遭刺殺。"
+        },
+        {
+          label: "交還全部軍隊與行省權限，重回紛亂的元老院寡頭爭吵",
+          impact: { morale: 5, military: -20, wealth: -10, culture: 5 },
+          grantCards: [],
+          actionType: "restore_senate",
+          feedback: "元老院無力管轄廣袤帝國與各路邊境野心將領，各地割據隱憂再現。",
+          knowledge: "龐大的羅馬世界當時已無法單靠舊城邦時代的元老院體制有效治理，需要強大集權中央。"
+        }
+      ]
+    },
+    {
+      stageNum: 7,
+      year: "西元 120 年",
+      title: "帝國全盛期的大型治理",
+      art: "🏛️",
+      text: "帝國版圖西起不列顛、東至幼發拉底河。如何管理這座擁有數千萬人口的超大型多民族帝國？",
+      choices: [
+        {
+          label: "修築羅馬道路網絡，並在各地城市建立引水道橋工程",
+          impact: { morale: 20, military: 10, wealth: -15, culture: 20 },
+          grantCards: ["c6", "c7"],
+          actionType: "infrastructure",
+          feedback: "道路讓軍隊與郵政一日千里，潔淨清泉流入每一座行省城市，羅馬生活方式深植人心！",
+          knowledge: "羅馬的大道網與引水道橋是古代土木奇蹟，將羅馬文明的生活標準帶到了全帝國。"
+        },
+        {
+          label: "在首都大建羅馬圓形競技場，提供免費的麵包與馬戲角鬥",
+          impact: { morale: 15, military: 0, wealth: -20, culture: 10 },
+          grantCards: ["c9"],
+          actionType: "entertainment",
+          feedback: "競技場內歡聲雷動，平民對生活感到滿足，但邊境的防衛設施卻缺少投資。",
+          knowledge: "羅馬皇帝以「麵包與馬戲（Bread and Circuses）」安撫首都無業平民，是維護統治的重要手段。"
+        },
+        {
+          label: "無視財務極限，持續向日耳曼與東方發動不休止的遠征",
+          impact: { morale: -15, military: 15, wealth: -25, culture: -10 },
+          grantCards: [],
+          actionType: "overexpansion",
+          feedback: "雖然奪得幾座要塞，但過長的防線與耗盡的國庫，成了帝國難以承受的重擔。",
+          knowledge: "哈德良皇帝改採守勢修築哈德良長城，正是意識到帝國邊界已達到了管理的地理與財政極限。"
+        }
+      ]
+    },
+    {
+      stageNum: 8,
+      year: "西元 330 年",
+      title: "帝國晚期的分裂與命運",
+      art: "🛡️",
+      text: "面對北方蠻族民族大遷徙與內部經濟通膨，帝國中樞面臨生死存亡的戰略抉擇。",
+      choices: [
+        {
+          label: "將帝國首都遷往東方博斯普魯斯海峽，建立君士坦丁新都",
+          impact: { morale: 5, military: 10, wealth: 15, culture: 15 },
+          grantCards: ["c12"],
+          actionType: "new_rome",
+          feedback: "東方富庶貿易樞紐得以保全，奠定拜占庭帝國千年的基業；但西方羅馬日漸落寞孤立。",
+          knowledge: "君士坦丁大帝遷都拜占庭（改名君士坦丁堡），使東羅馬在西羅馬滅亡後又延續了一千多年。"
+        },
+        {
+          label: "全面對境內平民強制加徵重稅，強行招募日耳曼蠻族組軍",
+          impact: { morale: -25, military: 10, wealth: 5, culture: -15 },
+          grantCards: [],
+          actionType: "barbarian_army",
+          feedback: "雖然暫時湊齊軍隊，但平民被壓榨得苦不堪言，蠻族將領最終反客為主掌控朝政。",
+          knowledge: "西羅馬帝國晚期極度依賴蠻族雇傭軍（同盟者），最終西元 476 年正是日耳曼將領廢黜了末代皇帝。"
+        },
+        {
+          label: "嚴厲鎖國封閉邊界，禁止任何外族流民進入帝國防線",
+          impact: { morale: -10, military: 5, wealth: -20, culture: -10 },
+          grantCards: [],
+          actionType: "lockdown",
+          feedback: "缺乏勞動力與新兵員的邊境防線處處漏洞，最終被匈人推動的蠻族大遷徙洪流衝垮。",
+          knowledge: "西羅馬的衰亡是長期內部財政人口危機，加上民族大遷徙外力衝擊的複雜綜合結果。"
+        }
+      ]
+    }
+  ];
+
+  // 頂部收集數量即時更新
+  function updateHeaderCardCount() {
+    const collected = getUnlockedCards();
+    const txt = `(${collected.length} / 16)`;
+    document.getElementById("header-card-count").textContent = txt;
+    const modalCounter = document.getElementById("modal-card-counter");
+    if (modalCounter) {
+      modalCounter.textContent = `已收集 ${collected.length} / 16 張文明遺產卡`;
+    }
+  }
+
+  // 更新數值 UI
+  function updateUIStats() {
+    document.getElementById("stat-morale").textContent = stats.morale;
+    document.getElementById("stat-military").textContent = stats.military;
+    document.getElementById("stat-wealth").textContent = stats.wealth;
+    document.getElementById("stat-culture").textContent = stats.culture;
+  }
+
+  // 載入關卡
+  function loadStage(index) {
+    const stage = stages[index];
+    document.getElementById("stage-num").textContent = `第 ${stage.stageNum} 關 / 共 ${stages.length} 關`;
+    document.getElementById("stage-title").textContent = stage.title;
+    document.getElementById("stage-year").textContent = stage.year;
+    document.getElementById("stage-art").textContent = stage.art;
+    document.getElementById("stage-text").textContent = stage.text;
+
+    const choicesBox = document.getElementById("choices-box");
+    choicesBox.innerHTML = "";
+    document.getElementById("history-box").style.display = "none";
+    document.getElementById("next-btn").style.display = "none";
+
+    const labels = ["A", "B", "C"];
+    stage.choices.forEach((choice, i) => {
+      const btn = document.createElement("button");
+      btn.className = "choice-btn";
+      btn.innerHTML = `<span class="tag">${labels[i]}.</span> <span>${choice.label}</span>`;
+      btn.onclick = () => handleChoice(choice);
+      choicesBox.appendChild(btn);
+    });
+  }
+
+  // 處理玩家選擇
+  function handleChoice(choice) {
+    // 結算基礎四項數值
+    stats.morale = Math.max(0, stats.morale + choice.impact.morale);
+    stats.military = Math.max(0, stats.military + choice.impact.military);
+    stats.wealth = Math.max(0, stats.wealth + choice.impact.wealth);
+    stats.culture = Math.max(0, stats.culture + choice.impact.culture);
+    updateUIStats();
+
+    // 禁用選項按鈕
+    const btns = document.getElementById("choices-box").querySelectorAll("button");
+    btns.forEach(b => {
+      b.disabled = true;
+      b.style.opacity = "0.55";
+      b.style.cursor = "default";
+    });
+
+    // 檢查卡片解鎖
+    let newlyUnlockedCardIds = [];
+    if (choice.grantCards && choice.grantCards.length > 0) {
+      choice.grantCards.forEach(cid => {
+        saveUnlockedCard(cid);
+        newlyUnlockedCardIds.push(cid);
+      });
+    }
+
+    // 隱藏卡 1：🕊️ 和平條約（連續兩次外交談判）
+    if (choice.actionType === "diplomacy") {
+      historyTracker.diplomacyStreak++;
+      if (historyTracker.diplomacyStreak >= 2) {
+        saveUnlockedCard("h1");
+        newlyUnlockedCardIds.push("h1");
+      }
+    } else {
+      historyTracker.diplomacyStreak = 0;
+    }
+
+    // 隱藏卡 2：🏛️ 民主火炬（雅典關卡選擇公民參與）
+    if (currentStageIndex === 1 && choice.grantCards.includes("c4")) {
+      saveUnlockedCard("h2");
+      newlyUnlockedCardIds.push("h2");
+    }
+
+    // 隱藏卡 3：⚒️ 羅馬工程師（同時擁有羅馬道路與水道橋）
+    if (choice.grantCards && choice.grantCards.includes("c6")) {
+      historyTracker.hasBuiltRoad = true;
+    }
+    if (choice.grantCards && choice.grantCards.includes("c7")) {
+      historyTracker.hasBuiltAqueduct = true;
+    }
+    const allCollected = getUnlockedCards();
+    if (allCollected.includes("c6") && allCollected.includes("c7")) {
+      if (!allCollected.includes("h3")) {
+        saveUnlockedCard("h3");
+        newlyUnlockedCardIds.push("h3");
+      }
+    }
+
+    // 隱藏卡 4：🌍 希臘化世界（第3關亞歷山大選擇文化交流與融合）
+    if (currentStageIndex === 2 && choice.actionType === "culture_mix") {
+      saveUnlockedCard("h4");
+      newlyUnlockedCardIds.push("h4");
+    }
+
+    // 顯示反饋內容
+    document.getElementById("feedback-text").textContent = choice.feedback;
+    document.getElementById("knowledge-text").textContent = "💡 歷史知識：" + choice.knowledge;
+
+    // 呈現本次獲得的文明遺產卡
+    const unlockContainer = document.getElementById("unlocked-cards-container");
+    unlockContainer.innerHTML = "";
+    if (newlyUnlockedCardIds.length > 0) {
+      newlyUnlockedCardIds.forEach(cid => {
+        const cData = ALL_CARDS.find(c => c.id === cid);
+        if (cData) {
+          const banner = document.createElement("div");
+          banner.className = "card-unlocked-banner";
+          banner.innerHTML = `<span class="c-icon">${cData.icon}</span> <span>獲得文明遺產卡：<strong>【${cData.name}】</strong>！</span>`;
+          unlockContainer.appendChild(banner);
+        }
+      });
+    }
+
+    // 數值增減標記
+    const statBox = document.getElementById("stat-changes-box");
+    statBox.innerHTML = "";
+    const names = { morale: "民心", military: "軍力", wealth: "財富", culture: "文化" };
+    for (const [key, val] of Object.entries(choice.impact)) {
+      if (val !== 0) {
+        const sp = document.createElement("span");
+        sp.className = val > 0 ? "stat-change-up" : "stat-change-down";
+        sp.textContent = `${names[key]} ${val > 0 ? "+" + val : val}`;
+        statBox.appendChild(sp);
+      }
+    }
+
+    document.getElementById("history-box").style.display = "block";
+    const nextBtn = document.getElementById("next-btn");
+    nextBtn.style.display = "block";
+    nextBtn.onclick = nextStep;
+  }
+
+  // 下一步
+  function nextStep() {
+    currentStageIndex++;
+    if (currentStageIndex < stages.length) {
+      loadStage(currentStageIndex);
+    } else {
+      showEnding();
+    }
+  }
+
+  // 結算稱號系統
+  function showEnding() {
+    document.getElementById("play-area").style.display = "none";
+    document.getElementById("ending-area").style.display = "block";
+
+    let icon = "👑";
+    let titleName = "";
+    let titleMeaning = "";
+    let desc = "";
+
+    const m = stats.morale;
+    const mil = stats.military;
+    const w = stats.wealth;
+    const c = stats.culture;
+
+    // 稱號判定邏輯
+    // 1. 帝國崩潰者（民心、財富、軍力皆低）
+    if (m <= 35 && w <= 35 && mil <= 35) {
+      icon = "🔥";
+      titleName = "帝國崩潰者";
+      titleMeaning = "擴張與統治失敗的深刻歷史教訓";
+      desc = "在面對內外危機時，錯誤的轉嫁負擔與過度消耗拖垮了文明的根基。財力耗盡、軍隊離心、民怨沸騰，一如西羅馬帝國在五世紀的傾覆，古老的秩序在廢墟中走向解體。";
+    }
+    // 2. 奧古斯都（四項數值均衡且高）
+    else if (m >= 55 && mil >= 55 && w >= 55 && c >= 55) {
+      icon = "👑";
+      titleName = "奧古斯都";
+      titleMeaning = "成功從城邦走向繁榮與長治久安的卓越統治者";
+      desc = "你展現了超凡的政治平衡力。在軍事防衛、公民福祉、經濟繁榮與文明涵養之間取得了近乎完美的協調，如同屋大維開闢「羅馬和平」盛世，讓文明之光照耀整個古典世界。";
+    }
+    // 3. 雅典智者（文化影響力最高）
+    else if (c >= m && c >= mil && c >= w) {
+      icon = "🏛️";
+      titleName = "雅典智者";
+      titleMeaning = "重視哲學思想、藝術美學與公民理性討論";
+      desc = "即便歷史興替不可阻擋，你的哲學辯論、戲劇藝術與科學探索卻跨越了疆界。一如蘇格拉底、柏拉圖與亞里斯多德，你的文明遺產並未隨刀劍鏽蝕，而在思想長河中永遠啟迪後世。";
+    }
+    // 4. 羅馬軍團長（軍力最高）
+    else if (mil >= m && mil >= w && mil >= c) {
+      icon = "⚔️";
+      titleName = "羅馬軍團長";
+      titleMeaning = "以軍事鐵律、武力邊防與強大秩序維持統治";
+      desc = "羅馬鷹旗在你的帶領下橫掃地中海四方，鋼鐵般的百人隊防線固若金湯。你用絕對的實力建立了秩序，但維持龐大常備軍所帶來的沉重財政與社會代價，也是歷史難以抹去的警示。";
+    }
+    // 5. 地中海商人（財富最高）
+    else if (w >= m && w >= mil && w >= c) {
+      icon = "💰";
+      titleName = "地中海商人";
+      titleMeaning = "重視港口貿易、商路航線與戰略物資流通";
+      desc = "地中海成為你繁榮的內海大商場。自雅典比雷埃夫斯港到羅馬奧斯提亞，財源滾滾湧入國庫，繁榮的商旅連結了多元族群，展現了商業在推動人類文明交流中的巨大能量。";
+    }
+    // 6. 城邦聯盟者（民心最高）
+    else {
+      icon = "🤝";
+      titleName = "城邦聯盟者";
+      titleMeaning = "重視同盟合作、民意福祉與廣大公民支持";
+      desc = "你深知城邦的真正力量不在於高築的城牆，而在於人民心靈的歸向。無論面對波斯外敵還是內部爭端，你以傾聽與團結凝聚共識，留下了崇尚合作的珍貴政治典範。";
+    }
+
+    document.getElementById("ending-badge-icon").textContent = icon;
+    document.getElementById("ending-title-name").textContent = `稱號：${titleName}`;
+    document.getElementById("ending-title-meaning").textContent = titleMeaning;
+    document.getElementById("ending-desc").innerHTML = `${desc}<br><br><strong>🏁 最終評定數值：</strong><br>民心：${m} ｜ 軍力：${mil} ｜ 財富：${w} ｜ 文化：${c}`;
+  }
+
+  // 渲染收集冊清單
+  function renderCardGrid() {
+    const grid = document.getElementById("card-grid-container");
+    grid.innerHTML = "";
+    const collected = getUnlockedCards();
+
+    ALL_CARDS.forEach(card => {
+      const isCollected = collected.includes(card.id);
+      const div = document.createElement("div");
+      
+      let classList = "card-item";
+      if (!isCollected) {
+        classList += card.isSecret ? " card-item locked hidden-locked" : " card-item locked";
+      } else if (card.isSecret) {
+        classList += " card-item secret-card";
+      }
+      div.className = classList;
+
+      if (isCollected) {
+        div.innerHTML = `
+          <div class="c-icon">${card.icon}</div>
+          <div class="c-name">${card.name}</div>
+          <span class="c-badge">${card.isSecret ? "★ 隱藏卡" : "已收集"}</span>
+          <div class="card-desc-tooltip">${card.desc}</div>
+        `;
+      } else {
+        div.innerHTML = `
+          <div class="c-icon" style="filter:grayscale(1);">${card.isSecret ? "🔒" : card.icon}</div>
+          <div class="c-name">${card.isSecret ? "？？？" : card.name}</div>
+          <span class="c-badge">${card.isSecret ? "神秘隱藏卡" : "未解鎖"}</span>
+          <div class="card-desc-tooltip">${card.unlockTip}</div>
+        `;
+      }
+      grid.appendChild(div);
+    });
+  }
+
+  // 收集冊彈窗開關
+  function openModal() {
+    renderCardGrid();
+    document.getElementById("cards-modal").style.display = "flex";
+  }
+
+  function closeModal() {
+    document.getElementById("cards-modal").style.display = "none";
+  }
+
+  // 重新開始
+  function restartGame() {
+    stats = { morale: 50, military: 50, wealth: 50, culture: 50 };
+    currentStageIndex = 0;
+    historyTracker = { diplomacyStreak: 0, hasBuiltRoad: false, hasBuiltAqueduct: false };
+    updateUIStats();
+    document.getElementById("ending-area").style.display = "none";
+    document.getElementById("play-area").style.display = "flex";
+    loadStage(0);
+  }
+
+  // 初始化遊戲
+  updateHeaderCardCount();
+  updateUIStats();
+  loadStage(0);
+</script>
+
+</body>
+</html>
